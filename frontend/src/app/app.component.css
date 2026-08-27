@@ -1,0 +1,20 @@
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.app-toolbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.app-content {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
