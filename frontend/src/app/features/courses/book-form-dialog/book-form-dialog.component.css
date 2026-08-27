@@ -1,0 +1,24 @@
+.full-width {
+  width: 100%;
+}
+
+.file-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.file-name {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.error-text {
+  color: #c62828;
+  font-size: 0.875rem;
+  margin: 4px 0 0;
+}
