@@ -19,6 +19,7 @@ services:
     depends_on:
       - db
       - minio
+      - markdown-worker
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB_NAME}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
@@ -26,6 +27,18 @@ services:
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - MINIO_INTERNAL_URL=${MINIO_INTERNAL_URL}
       - MINIO_EXTERNAL_URL=${MINIO_EXTERNAL_URL}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MARKDOWN_WORKER_URL=http://markdown-worker:8000
+
+  markdown-worker:
+    build: ./markdown-worker
+    ports:
+      - "8000:8000"
+    depends_on:
+      - minio
+    environment:
+      - MINIO_INTERNAL_URL=${MINIO_INTERNAL_URL}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
 

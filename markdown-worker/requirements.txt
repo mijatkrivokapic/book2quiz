@@ -1,0 +1,35 @@
+# Fully pinned to keep pip's dependency resolver fast and deterministic. Without
+# these pins pip backtracks for many minutes: the newest wheels of torch (CUDA
+# matrix), opencv/scikit-image/scipy (now require numpy 2), and transformers have
+# huge version spaces. Versions below are a mutually-compatible set contemporaneous
+# with docling 2.25.0 (Feb 2025), all accepting numpy 1.26.4.
+
+# CPU-only PyTorch (pulled in transitively by easyocr / docling-ibm-models).
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu
+torchvision==0.20.1+cpu
+
+# numpy-sensitive leaves, pinned to versions that still support numpy 1.x.
+numpy==1.26.4
+opencv-python-headless==4.10.0.84
+scikit-image==0.24.0
+scipy==1.13.1
+pandas==2.2.3
+
+# Docling stack + OCR, pinned as a coherent set.
+docling==2.25.0
+docling-core[chunking]==2.20.0
+docling-ibm-models==3.4.0
+docling-parse==3.4.0
+easyocr==1.7.2
+# easyocr 1.7.2 does `from bidi import get_display` (top-level), which is the
+# python-bidi 0.5+ Rust-rewrite API; the old 0.4.x only exposes it under
+# bidi.algorithm, so it must be a 0.6.x here.
+python-bidi==0.6.11
+transformers==4.49.0
+
+# Web service.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+minio==7.2.12
