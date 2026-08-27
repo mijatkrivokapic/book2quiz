@@ -86,7 +86,19 @@ public class MinioStorageService implements FileStorageService {
 
     @Override
     public void deleteFile(String fileKey) {
-        // TODO: implement delete
+        if (fileKey == null) {
+            return;
+        }
+        try {
+            internalClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(fileKey)
+                            .build()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Error deleting file for key: " + fileKey, e);
+        }
     }
 
     @Override

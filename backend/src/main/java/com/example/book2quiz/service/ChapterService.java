@@ -137,6 +137,21 @@ public class ChapterService {
         return toGetChapterDTO(findChapterOrThrow(bookId, ordinal));
     }
 
+    /** Renames a chapter. */
+    public GetChapterDTO updateChapterTitle(Integer bookId, int ordinal, String title) {
+        Chapter chapter = findChapterOrThrow(bookId, ordinal);
+        chapter.setTitle(title);
+        return toGetChapterDTO(chapter);
+    }
+
+    /** Deletes a chapter and its associated PDF/Markdown objects in MinIO. */
+    public void deleteChapter(Integer bookId, int ordinal) {
+        Chapter chapter = findChapterOrThrow(bookId, ordinal);
+        fileStorageService.deleteFile(chapter.getPdfObjectKey());
+        fileStorageService.deleteFile(chapter.getMarkdownObjectKey());
+        chapterRepository.delete(chapter);
+    }
+
     /**
      * Overwrites a chapter's Markdown with manually edited content. Writes to the
      * chapter's canonical Markdown key (creating it if the chapter had none yet) and

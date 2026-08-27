@@ -2,6 +2,7 @@ package com.example.book2quiz.controller;
 
 import com.example.book2quiz.dto.chapter.CreateChapterDTO;
 import com.example.book2quiz.dto.chapter.GetChapterDTO;
+import com.example.book2quiz.dto.chapter.UpdateChapterDTO;
 import com.example.book2quiz.dto.chapter.UpdateChapterMarkdownDTO;
 import com.example.book2quiz.service.ChapterService;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -58,6 +60,19 @@ public class ChapterController {
     @GetMapping("/chapters/{ordinal}")
     public ResponseEntity<GetChapterDTO> getChapter(@PathVariable Integer bookId, @PathVariable int ordinal) {
         return ResponseEntity.ok(chapterService.getChapter(bookId, ordinal));
+    }
+
+    @PutMapping("/chapters/{ordinal}")
+    public ResponseEntity<GetChapterDTO> updateChapter(@PathVariable Integer bookId,
+                                                       @PathVariable int ordinal,
+                                                       @Valid @RequestBody UpdateChapterDTO dto) {
+        return ResponseEntity.ok(chapterService.updateChapterTitle(bookId, ordinal, dto.title()));
+    }
+
+    @DeleteMapping("/chapters/{ordinal}")
+    public ResponseEntity<Void> deleteChapter(@PathVariable Integer bookId, @PathVariable int ordinal) {
+        chapterService.deleteChapter(bookId, ordinal);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/chapters/{ordinal}/markdown")
