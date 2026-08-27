@@ -1,0 +1,47 @@
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 500;
+}
+
+.state-container {
+  display: flex;
+  justify-content: center;
+  padding: 64px 0;
+}
+
+.empty-state {
+  flex-direction: column;
+  gap: 12px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.empty-state mat-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+}
+
+.courses-table {
+  width: 100%;
+}
+
+.course-row {
+  cursor: pointer;
+}
+
+.course-row:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.actions-cell {
+  width: 56px;
+  text-align: right;
+}

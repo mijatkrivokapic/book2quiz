@@ -1,0 +1,35 @@
+<a routerLink="/courses" class="back-link">
+  <mat-icon>arrow_back</mat-icon>
+  Back to courses
+</a>
+
+<mat-card class="form-card">
+  <mat-card-header>
+    <mat-card-title>New Course</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Course name</mat-label>
+        <input matInput formControlName="name" autocomplete="off" />
+        @if (form.controls.name.hasError('required')) {
+          <mat-error>Name is required.</mat-error>
+        } @else if (form.controls.name.hasError('maxlength')) {
+          <mat-error>Name is too long.</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="form-actions">
+        <button mat-button type="button" routerLink="/courses" [disabled]="submitting()">Cancel</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="submitting()">
+          @if (submitting()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Create Course
+          }
+        </button>
+      </div>
+    </form>
+  </mat-card-content>
+</mat-card>

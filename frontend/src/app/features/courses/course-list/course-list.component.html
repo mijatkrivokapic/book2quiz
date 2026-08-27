@@ -1,0 +1,53 @@
+<div class="page-header">
+  <h1>Courses</h1>
+  <button mat-flat-button color="primary" routerLink="/courses/new">
+    <mat-icon>add</mat-icon>
+    New Course
+  </button>
+</div>
+
+@if (loading()) {
+  <div class="state-container">
+    <mat-spinner diameter="40" />
+  </div>
+} @else if (courses().length === 0) {
+  <div class="state-container empty-state">
+    <mat-icon>menu_book</mat-icon>
+    <p>No courses yet.</p>
+    <button mat-stroked-button color="primary" routerLink="/courses/new">Create your first course</button>
+  </div>
+} @else {
+  <table mat-table [dataSource]="courses()" class="courses-table">
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef>Name</th>
+      <td mat-cell *matCellDef="let course">{{ course.name }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="bookCount">
+      <th mat-header-cell *matHeaderCellDef>Books</th>
+      <td mat-cell *matCellDef="let course">{{ course.bookCount }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="lessonCount">
+      <th mat-header-cell *matHeaderCellDef>Lessons</th>
+      <td mat-cell *matCellDef="let course">{{ course.lessonCount }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let course" class="actions-cell">
+        <button
+          mat-icon-button
+          matTooltip="Delete course"
+          [disabled]="deletingId() === course.id"
+          (click)="deleteCourse(course, $event)"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns" class="course-row" (click)="openCourse(row)"></tr>
+  </table>
+}
