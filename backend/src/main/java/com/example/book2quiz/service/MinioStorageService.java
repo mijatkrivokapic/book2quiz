@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -85,5 +87,52 @@ public class MinioStorageService implements FileStorageService {
     @Override
     public void deleteFile(String fileKey) {
         // TODO: implement delete
+    }
+
+    @Override
+    public void uploadBytes(byte[] content, String fileKey, String contentType) {
+        try (InputStream stream = new ByteArrayInputStream(content)) {
+            internalClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(fileKey)
+                            .stream(stream, content.length, -1)
+                            .contentType(contentType)
+                            .build()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Error uploading bytes for key: " + fileKey, e);
+        }
+    }
+
+    @Override
+    public byte[] downloadFile(String fileKey) {
+        try (GetObjectResponse response = internalClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(fileKey)
+                        .build())) {
+            return response.readAllBytes();
+        } catch (Exception e) {
+            throw new RuntimeException("Error downloading file for key: " + fileKey, e);
+        }
+    }
+
+    @Override
+    public InputStream openStream(String fileKey) {
+        try {
+            return internalClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(fileKey)
+                            .build());
+        } catch (Exception e) {
+            throw new RuntimeException("Error opening stream for key: " + fileKey, e);
+        }
+    }
+
+    @Override
+    public String getBucketName() {
+        return bucketName;
     }
 }
