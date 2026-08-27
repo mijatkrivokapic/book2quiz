@@ -66,6 +66,9 @@ public class Chapter {
     @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SurfaceCharacteristic> surfaceCharacteristics = new ArrayList<>();
 
+    @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Constraint> constraints = new ArrayList<>();
+
     @CreationTimestamp
     @Column(updatable = false)
     private Instant createdAt;
