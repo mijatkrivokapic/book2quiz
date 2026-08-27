@@ -1,4 +1,4 @@
-<section class="characteristic-section">
+<section class="item-list-section">
   <h3>{{ label() }}</h3>
 
   @if (loading()) {
@@ -44,7 +44,7 @@
                   mat-icon-button
                   matTooltip="Delete"
                   [disabled]="busyId() === item.id"
-                  (click)="remove(item)"
+                  (click)="removeItem(item)"
                 >
                   <mat-icon>delete</mat-icon>
                 </button>

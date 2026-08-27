@@ -133,17 +133,27 @@
       }
     } @else {
       <div class="characteristics">
-        <app-characteristic-list
-          [bookId]="bookId"
-          [ordinal]="ordinal"
-          type="structural"
+        <app-editable-item-list
           label="Structural characteristics"
+          [load]="loadStructural"
+          [create]="createStructural"
+          [update]="updateStructural"
+          [remove]="removeStructural"
         />
-        <app-characteristic-list
-          [bookId]="bookId"
-          [ordinal]="ordinal"
-          type="surface"
+        <app-editable-item-list
           label="Surface characteristics"
+          [load]="loadSurface"
+          [create]="createSurface"
+          [update]="updateSurface"
+          [remove]="removeSurface"
+        />
+
+        <app-editable-item-list
+          label="Constraints"
+          [load]="loadConstraints"
+          [create]="createConstraint"
+          [update]="updateConstraint"
+          [remove]="removeConstraint"
         />
       </div>
     }

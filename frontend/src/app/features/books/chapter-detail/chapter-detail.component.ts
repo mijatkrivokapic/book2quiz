@@ -11,13 +11,15 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { BookService } from '../../../core/services/book.service';
 import { ChapterService } from '../../../core/services/chapter.service';
+import { CharacteristicService } from '../../../core/services/characteristic.service';
+import { ConstraintService } from '../../../core/services/constraint.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { extractErrorMessage } from '../../../core/utils/http-error.util';
 import { renderMarkdown } from '../../../core/utils/markdown.util';
 import { Book } from '../../../core/models/book.model';
 import { Chapter } from '../../../core/models/chapter.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { CharacteristicListComponent } from '../characteristic-list/characteristic-list.component';
+import { EditableItemListComponent } from '../editable-item-list/editable-item-list.component';
 
 type DetailView = 'content' | 'characteristics';
 
@@ -33,7 +35,7 @@ type DetailView = 'content' | 'characteristics';
     MatInputModule,
     MatTooltipModule,
     MatButtonToggleModule,
-    CharacteristicListComponent
+    EditableItemListComponent
   ],
   standalone: true,
   templateUrl: './chapter-detail.component.html',
@@ -46,6 +48,8 @@ export class ChapterDetailComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly bookService = inject(BookService);
   private readonly chapterService = inject(ChapterService);
+  private readonly characteristicService = inject(CharacteristicService);
+  private readonly constraintService = inject(ConstraintService);
   private readonly notification = inject(NotificationService);
 
   protected readonly bookId = Number(this.route.snapshot.paramMap.get('bookId'));
@@ -61,6 +65,33 @@ export class ChapterDetailComponent implements OnInit {
   protected readonly editing = signal(false);
   protected readonly saving = signal(false);
   protected readonly view = signal<DetailView>('content');
+
+  // CRUD adapters handed to the generic editable-item-list component.
+  protected readonly loadStructural = () =>
+    this.characteristicService.list(this.bookId, this.ordinal, 'structural');
+  protected readonly createStructural = (content: string) =>
+    this.characteristicService.create(this.bookId, this.ordinal, 'structural', content);
+  protected readonly updateStructural = (id: number, content: string) =>
+    this.characteristicService.update(this.bookId, this.ordinal, 'structural', id, content);
+  protected readonly removeStructural = (id: number) =>
+    this.characteristicService.delete(this.bookId, this.ordinal, 'structural', id);
+
+  protected readonly loadSurface = () =>
+    this.characteristicService.list(this.bookId, this.ordinal, 'surface');
+  protected readonly createSurface = (content: string) =>
+    this.characteristicService.create(this.bookId, this.ordinal, 'surface', content);
+  protected readonly updateSurface = (id: number, content: string) =>
+    this.characteristicService.update(this.bookId, this.ordinal, 'surface', id, content);
+  protected readonly removeSurface = (id: number) =>
+    this.characteristicService.delete(this.bookId, this.ordinal, 'surface', id);
+
+  protected readonly loadConstraints = () => this.constraintService.list(this.bookId, this.ordinal);
+  protected readonly createConstraint = (content: string) =>
+    this.constraintService.create(this.bookId, this.ordinal, content);
+  protected readonly updateConstraint = (id: number, content: string) =>
+    this.constraintService.update(this.bookId, this.ordinal, id, content);
+  protected readonly removeConstraint = (id: number) =>
+    this.constraintService.delete(this.bookId, this.ordinal, id);
 
   protected readonly editingTitle = signal(false);
   protected readonly savingTitle = signal(false);
