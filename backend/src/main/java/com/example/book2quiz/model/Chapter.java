@@ -9,6 +9,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "chapters")
@@ -57,6 +59,12 @@ public class Chapter {
 
     @Column(columnDefinition = "TEXT")
     private String errorMessage;
+
+    @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StructuralCharacteristic> structuralCharacteristics = new ArrayList<>();
+
+    @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SurfaceCharacteristic> surfaceCharacteristics = new ArrayList<>();
 
     @CreationTimestamp
     @Column(updatable = false)
