@@ -1,14 +1,17 @@
 package com.example.book2quiz.controller;
 
+import com.example.book2quiz.dto.chapter.CreateChapterDTO;
 import com.example.book2quiz.dto.chapter.GetChapterDTO;
 import com.example.book2quiz.dto.chapter.UpdateChapterMarkdownDTO;
 import com.example.book2quiz.service.ChapterService;
 import jakarta.validation.Valid;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -43,6 +46,13 @@ public class ChapterController {
     @GetMapping("/chapters")
     public ResponseEntity<List<GetChapterDTO>> getChapters(@PathVariable Integer bookId) {
         return ResponseEntity.ok(chapterService.getChapters(bookId));
+    }
+
+    @PostMapping(path = "/chapters", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<GetChapterDTO> createChapter(@PathVariable Integer bookId,
+                                                       @Valid @ModelAttribute CreateChapterDTO dto) {
+        GetChapterDTO created = chapterService.createChapter(bookId, dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping("/chapters/{ordinal}")

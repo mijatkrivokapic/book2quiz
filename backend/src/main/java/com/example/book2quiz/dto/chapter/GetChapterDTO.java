@@ -13,6 +13,7 @@ public record GetChapterDTO(
         ProcessingStatus status,
         String errorMessage,
         boolean markdownAvailable,
+        boolean pdfAvailable,
         Instant createdAt,
         Instant updatedAt
 ) {

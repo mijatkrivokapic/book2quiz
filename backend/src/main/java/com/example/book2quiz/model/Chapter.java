@@ -36,13 +36,16 @@ public class Chapter {
     @Column(nullable = false)
     private String title;
 
+    // startPage/endPage are 0 for manually-created chapters that do not map to a
+    // page range of the book PDF.
     @Column(nullable = false)
     private int startPage;
 
     @Column(nullable = false)
     private int endPage;
 
-    @Column(nullable = false)
+    // Null for chapters authored directly as Markdown (no source PDF).
+    @Column
     private String pdfObjectKey;
 
     @Column
