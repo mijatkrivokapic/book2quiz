@@ -80,6 +80,7 @@
 }
 
 .actions-cell {
-  width: 168px;
+  width: 216px;
   text-align: right;
+  white-space: nowrap;
 }

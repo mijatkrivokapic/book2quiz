@@ -1,0 +1,86 @@
+<a [routerLink]="['/books', bookId, 'chapters']" class="back-link">
+  <mat-icon>arrow_back</mat-icon>
+  Back to chapters
+</a>
+
+@if (loading()) {
+  <div class="state-container">
+    <mat-spinner diameter="40" />
+  </div>
+} @else if (notFound()) {
+  <div class="state-container empty-state">
+    <mat-icon>error_outline</mat-icon>
+    <p>Chapter not found.</p>
+    <a mat-stroked-button color="primary" [routerLink]="['/books', bookId, 'chapters']">Back to chapters</a>
+  </div>
+} @else {
+  @if (chapter(); as ch) {
+    <div class="page-header">
+      <div class="titles">
+        <h1>{{ ch.ordinal }}. {{ ch.title }}</h1>
+        <span class="subtitle">
+          @if (book(); as b) {
+            {{ b.title }} ·
+          }
+          pages {{ ch.startPage }}–{{ ch.endPage }}
+          <span class="status-chip" [class]="'status-' + ch.status.toLowerCase()">{{ ch.status }}</span>
+        </span>
+      </div>
+
+      <div class="header-actions">
+        @if (editing()) {
+          <button mat-stroked-button [disabled]="saving()" (click)="cancelEdit()">Cancel</button>
+          @if (saving()) {
+            <button mat-flat-button color="primary" disabled>
+              <mat-spinner diameter="18" class="btn-spinner" />
+              Saving…
+            </button>
+          } @else {
+            <button mat-flat-button color="primary" (click)="save()">
+              <mat-icon>save</mat-icon>
+              Save
+            </button>
+          }
+        } @else {
+          <a mat-stroked-button [href]="pdfUrl()" target="_blank" rel="noopener">
+            <mat-icon>picture_as_pdf</mat-icon>
+            PDF
+          </a>
+          <button mat-flat-button color="primary" (click)="startEdit()">
+            <mat-icon>edit</mat-icon>
+            Edit
+          </button>
+        }
+      </div>
+    </div>
+
+    @if (editing()) {
+      <div class="editor-layout">
+        <div class="editor-pane">
+          <span class="pane-label">Markdown</span>
+          <textarea
+            class="md-editor"
+            spellcheck="false"
+            [value]="editContent()"
+            (input)="onInput($event)"
+          ></textarea>
+        </div>
+        <div class="preview-pane">
+          <span class="pane-label">Preview</span>
+          <div class="markdown-body" [innerHTML]="renderedPreview()"></div>
+        </div>
+      </div>
+    } @else if (markdown()) {
+      <div class="markdown-body" [innerHTML]="renderedView()"></div>
+    } @else {
+      <div class="state-container empty-state">
+        <mat-icon>notes</mat-icon>
+        <p>This chapter has no Markdown yet.</p>
+        <button mat-stroked-button color="primary" (click)="startEdit()">
+          <mat-icon>edit</mat-icon>
+          Add Markdown
+        </button>
+      </div>
+    }
+  }
+}

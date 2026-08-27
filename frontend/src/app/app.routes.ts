@@ -17,5 +17,15 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/courses/course-detail/course-detail.component').then(m => m.CourseDetailComponent)
   },
+  {
+    path: 'books/:bookId/chapters',
+    loadComponent: () =>
+      import('./features/books/book-chapters/book-chapters.component').then(m => m.BookChaptersComponent)
+  },
+  {
+    path: 'books/:bookId/chapters/:ordinal',
+    loadComponent: () =>
+      import('./features/books/chapter-detail/chapter-detail.component').then(m => m.ChapterDetailComponent)
+  },
   { path: '**', redirectTo: 'courses' }
 ];
