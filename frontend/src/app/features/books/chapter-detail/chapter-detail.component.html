@@ -69,7 +69,7 @@
             </button>
           }
         } @else {
-          @if (ch.pdfAvailable) {
+          @if (view() === 'content' && ch.pdfAvailable) {
             <a mat-stroked-button [href]="pdfUrl()" target="_blank" rel="noopener">
               <mat-icon>picture_as_pdf</mat-icon>
               PDF
@@ -79,40 +79,72 @@
             <mat-icon>delete</mat-icon>
             Delete
           </button>
-          <button mat-flat-button color="primary" (click)="startEdit()">
-            <mat-icon>edit</mat-icon>
-            Edit
-          </button>
+          @if (view() === 'content') {
+            <button mat-flat-button color="primary" (click)="startEdit()">
+              <mat-icon>edit</mat-icon>
+              Edit
+            </button>
+          }
         }
       </div>
     </div>
 
-    @if (editing()) {
-      <div class="editor-layout">
-        <div class="editor-pane">
-          <span class="pane-label">Markdown</span>
-          <textarea
-            class="md-editor"
-            spellcheck="false"
-            [value]="editContent()"
-            (input)="onInput($event)"
-          ></textarea>
+    @if (!editing()) {
+      <mat-button-toggle-group class="view-toggle" [value]="view()" (change)="setView($event.value)">
+        <mat-button-toggle value="content">
+          <mat-icon>article</mat-icon>
+          Content
+        </mat-button-toggle>
+        <mat-button-toggle value="characteristics">
+          <mat-icon>list_alt</mat-icon>
+          Characteristics
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    }
+
+    @if (view() === 'content') {
+      @if (editing()) {
+        <div class="editor-layout">
+          <div class="editor-pane">
+            <span class="pane-label">Markdown</span>
+            <textarea
+              class="md-editor"
+              spellcheck="false"
+              [value]="editContent()"
+              (input)="onInput($event)"
+            ></textarea>
+          </div>
+          <div class="preview-pane">
+            <span class="pane-label">Preview</span>
+            <div class="markdown-body" [innerHTML]="renderedPreview()"></div>
+          </div>
         </div>
-        <div class="preview-pane">
-          <span class="pane-label">Preview</span>
-          <div class="markdown-body" [innerHTML]="renderedPreview()"></div>
+      } @else if (markdown()) {
+        <div class="markdown-body" [innerHTML]="renderedView()"></div>
+      } @else {
+        <div class="state-container empty-state">
+          <mat-icon>notes</mat-icon>
+          <p>This chapter has no Markdown yet.</p>
+          <button mat-stroked-button color="primary" (click)="startEdit()">
+            <mat-icon>edit</mat-icon>
+            Add Markdown
+          </button>
         </div>
-      </div>
-    } @else if (markdown()) {
-      <div class="markdown-body" [innerHTML]="renderedView()"></div>
+      }
     } @else {
-      <div class="state-container empty-state">
-        <mat-icon>notes</mat-icon>
-        <p>This chapter has no Markdown yet.</p>
-        <button mat-stroked-button color="primary" (click)="startEdit()">
-          <mat-icon>edit</mat-icon>
-          Add Markdown
-        </button>
+      <div class="characteristics">
+        <app-characteristic-list
+          [bookId]="bookId"
+          [ordinal]="ordinal"
+          type="structural"
+          label="Structural characteristics"
+        />
+        <app-characteristic-list
+          [bookId]="bookId"
+          [ordinal]="ordinal"
+          type="surface"
+          label="Surface characteristics"
+        />
       </div>
     }
   }

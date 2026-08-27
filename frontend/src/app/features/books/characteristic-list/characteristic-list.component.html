@@ -1,0 +1,79 @@
+<section class="characteristic-section">
+  <h3>{{ label() }}</h3>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <mat-spinner diameter="24" />
+    </div>
+  } @else {
+    @if (items().length === 0) {
+      <p class="empty">No {{ label().toLowerCase() }} yet.</p>
+    } @else {
+      <ul class="items">
+        @for (item of items(); track item.id) {
+          <li class="item">
+            @if (editingId() === item.id) {
+              <mat-form-field appearance="outline" class="item-field">
+                <textarea
+                  matInput
+                  rows="2"
+                  [value]="editContent()"
+                  (input)="onEditInput($event)"
+                ></textarea>
+              </mat-form-field>
+              <div class="item-actions">
+                <button
+                  mat-icon-button
+                  matTooltip="Save"
+                  [disabled]="busyId() === item.id"
+                  (click)="saveEdit(item)"
+                >
+                  <mat-icon>check</mat-icon>
+                </button>
+                <button mat-icon-button matTooltip="Cancel" (click)="cancelEdit()">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            } @else {
+              <span class="item-content">{{ item.content }}</span>
+              <div class="item-actions">
+                <button mat-icon-button matTooltip="Edit" (click)="startEdit(item)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  matTooltip="Delete"
+                  [disabled]="busyId() === item.id"
+                  (click)="remove(item)"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+
+    <div class="add-row">
+      <mat-form-field appearance="outline" class="item-field">
+        <mat-label>Add {{ label().toLowerCase() }}</mat-label>
+        <textarea
+          matInput
+          rows="2"
+          [value]="newContent()"
+          (input)="onNewInput($event)"
+        ></textarea>
+      </mat-form-field>
+      <button
+        mat-flat-button
+        color="primary"
+        [disabled]="adding() || !newContent().trim()"
+        (click)="add()"
+      >
+        <mat-icon>add</mat-icon>
+        Add
+      </button>
+    </div>
+  }
+</section>

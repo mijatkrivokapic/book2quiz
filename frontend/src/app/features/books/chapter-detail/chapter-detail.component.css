@@ -94,6 +94,14 @@
   color: #c62828;
 }
 
+.view-toggle {
+  margin-bottom: 20px;
+}
+
+.characteristics {
+  max-width: 820px;
+}
+
 .editor-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;

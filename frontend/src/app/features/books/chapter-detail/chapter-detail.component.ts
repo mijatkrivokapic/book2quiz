@@ -7,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { BookService } from '../../../core/services/book.service';
 import { ChapterService } from '../../../core/services/chapter.service';
@@ -16,6 +17,9 @@ import { renderMarkdown } from '../../../core/utils/markdown.util';
 import { Book } from '../../../core/models/book.model';
 import { Chapter } from '../../../core/models/chapter.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { CharacteristicListComponent } from '../characteristic-list/characteristic-list.component';
+
+type DetailView = 'content' | 'characteristics';
 
 @Component({
   selector: 'app-chapter-detail',
@@ -27,7 +31,9 @@ import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-d
     MatProgressSpinnerModule,
     MatFormFieldModule,
     MatInputModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatButtonToggleModule,
+    CharacteristicListComponent
   ],
   standalone: true,
   templateUrl: './chapter-detail.component.html',
@@ -54,6 +60,7 @@ export class ChapterDetailComponent implements OnInit {
   protected readonly notFound = signal(false);
   protected readonly editing = signal(false);
   protected readonly saving = signal(false);
+  protected readonly view = signal<DetailView>('content');
 
   protected readonly editingTitle = signal(false);
   protected readonly savingTitle = signal(false);
@@ -111,6 +118,10 @@ export class ChapterDetailComponent implements OnInit {
         this.notification.error(extractErrorMessage(err, 'Failed to save the Markdown.'));
       }
     });
+  }
+
+  protected setView(view: DetailView): void {
+    this.view.set(view);
   }
 
   protected startEditTitle(): void {
