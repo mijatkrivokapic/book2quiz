@@ -47,6 +47,14 @@ export class ChapterService {
     return this.http.get<Chapter>(`${this.baseUrl}/${bookId}/chapters/${ordinal}`);
   }
 
+  updateTitle(bookId: number, ordinal: number, title: string): Observable<Chapter> {
+    return this.http.put<Chapter>(`${this.baseUrl}/${bookId}/chapters/${ordinal}`, { title });
+  }
+
+  deleteChapter(bookId: number, ordinal: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${bookId}/chapters/${ordinal}`);
+  }
+
   getMarkdown(bookId: number, ordinal: number): Observable<string> {
     return this.http.get(`${this.baseUrl}/${bookId}/chapters/${ordinal}/markdown`, {
       responseType: 'text'

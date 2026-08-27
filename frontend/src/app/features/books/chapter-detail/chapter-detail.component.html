@@ -17,7 +17,32 @@
   @if (chapter(); as ch) {
     <div class="page-header">
       <div class="titles">
-        <h1>{{ ch.ordinal }}. {{ ch.title }}</h1>
+        @if (editingTitle()) {
+          <form class="title-form" [formGroup]="titleForm" (ngSubmit)="saveTitle()">
+            <span class="ordinal-prefix">{{ ch.ordinal }}.</span>
+            <mat-form-field appearance="outline" class="title-field">
+              <input matInput formControlName="title" autocomplete="off" />
+              @if (titleForm.controls.title.hasError('required')) {
+                <mat-error>Title is required.</mat-error>
+              }
+            </mat-form-field>
+            <button mat-icon-button type="submit" [disabled]="savingTitle()" matTooltip="Save">
+              <mat-icon>check</mat-icon>
+            </button>
+            <button mat-icon-button type="button" [disabled]="savingTitle()" (click)="cancelEditTitle()" matTooltip="Cancel">
+              <mat-icon>close</mat-icon>
+            </button>
+          </form>
+        } @else {
+          <h1>
+            {{ ch.ordinal }}. {{ ch.title }}
+            @if (!editing()) {
+              <button mat-icon-button matTooltip="Rename chapter" (click)="startEditTitle()">
+                <mat-icon>edit</mat-icon>
+              </button>
+            }
+          </h1>
+        }
         <span class="subtitle">
           @if (book(); as b) {
             {{ b.title }} ·
@@ -50,6 +75,10 @@
               PDF
             </a>
           }
+          <button mat-stroked-button color="warn" (click)="deleteChapter()">
+            <mat-icon>delete</mat-icon>
+            Delete
+          </button>
           <button mat-flat-button color="primary" (click)="startEdit()">
             <mat-icon>edit</mat-icon>
             Edit

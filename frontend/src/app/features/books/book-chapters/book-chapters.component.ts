@@ -101,6 +101,30 @@ export class BookChaptersComponent implements OnInit, OnDestroy {
       });
   }
 
+  protected deleteChapter(chapter: Chapter): void {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: 'Delete chapter',
+        message: `Delete chapter "${chapter.title}"? Its PDF and Markdown will be removed. This cannot be undone.`,
+        confirmLabel: 'Delete'
+      }
+    });
+
+    ref.afterClosed().subscribe(confirmed => {
+      if (!confirmed) {
+        return;
+      }
+      this.chapterService.deleteChapter(this.bookId, chapter.ordinal).subscribe({
+        next: () => {
+          this.chapters.update(list => list.filter(c => c.ordinal !== chapter.ordinal));
+          this.notification.success(`Chapter "${chapter.title}" deleted.`);
+        },
+        error: err => this.notification.error(extractErrorMessage(err, 'Failed to delete the chapter.'))
+      });
+    });
+  }
+
   protected retry(chapter: Chapter): void {
     this.retryingOrdinal.set(chapter.ordinal);
     this.chapterService.retryChapter(this.bookId, chapter.ordinal).subscribe({
