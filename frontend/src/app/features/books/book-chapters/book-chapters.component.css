@@ -29,9 +29,19 @@
   gap: 8px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .btn-spinner {
   display: inline-block;
   margin-right: 8px;
+}
+
+.muted {
+  color: rgba(0, 0, 0, 0.38);
 }
 
 .state-container {

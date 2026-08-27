@@ -9,6 +9,9 @@ export interface Chapter {
   status: ProcessingStatus;
   errorMessage: string | null;
   markdownAvailable: boolean;
+  pdfAvailable: boolean;
   createdAt: string;
   updatedAt: string;
 }
+
+export type ChapterSource = 'PDF' | 'MARKDOWN';

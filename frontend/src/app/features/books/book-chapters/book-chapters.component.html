@@ -16,22 +16,29 @@
     {{ book()?.title ?? 'Chapters' }}
   </h1>
 
-  @if (extracting() || inProgress()) {
-    <button mat-flat-button color="primary" disabled>
-      <mat-spinner diameter="18" class="btn-spinner" />
-      Extracting…
+  <div class="header-actions">
+    <button mat-stroked-button color="primary" [disabled]="extracting()" (click)="openAddChapter()">
+      <mat-icon>add</mat-icon>
+      Add chapter
     </button>
-  } @else if (chapters().length > 0) {
-    <button mat-flat-button color="primary" (click)="extract()">
-      <mat-icon>refresh</mat-icon>
-      Re-extract chapters
-    </button>
-  } @else {
-    <button mat-flat-button color="primary" (click)="extract()">
-      <mat-icon>playlist_add</mat-icon>
-      Extract chapters
-    </button>
-  }
+
+    @if (extracting() || inProgress()) {
+      <button mat-flat-button color="primary" disabled>
+        <mat-spinner diameter="18" class="btn-spinner" />
+        Extracting…
+      </button>
+    } @else if (chapters().length > 0) {
+      <button mat-flat-button color="primary" (click)="extract()">
+        <mat-icon>refresh</mat-icon>
+        Re-extract chapters
+      </button>
+    } @else {
+      <button mat-flat-button color="primary" (click)="extract()">
+        <mat-icon>playlist_add</mat-icon>
+        Extract chapters
+      </button>
+    }
+  </div>
 </div>
 
 @if (loading()) {
@@ -67,7 +74,13 @@
 
     <ng-container matColumnDef="pages">
       <th mat-header-cell *matHeaderCellDef>Pages</th>
-      <td mat-cell *matCellDef="let ch">{{ ch.startPage }}–{{ ch.endPage }}</td>
+      <td mat-cell *matCellDef="let ch">
+        @if (ch.startPage > 0) {
+          {{ ch.startPage }}–{{ ch.endPage }}
+        } @else {
+          <span class="muted">—</span>
+        }
+      </td>
     </ng-container>
 
     <ng-container matColumnDef="status">
@@ -87,19 +100,21 @@
         >
           <mat-icon>description</mat-icon>
         </a>
-        <a
-          mat-icon-button
-          matTooltip="Download chapter PDF"
-          [href]="pdfUrl(ch)"
-          target="_blank"
-          rel="noopener"
-        >
-          <mat-icon>picture_as_pdf</mat-icon>
-        </a>
+        @if (ch.pdfAvailable) {
+          <a
+            mat-icon-button
+            matTooltip="Download chapter PDF"
+            [href]="pdfUrl(ch)"
+            target="_blank"
+            rel="noopener"
+          >
+            <mat-icon>picture_as_pdf</mat-icon>
+          </a>
+        }
         <button
           mat-icon-button
           matTooltip="Retry conversion"
-          [disabled]="ch.status !== 'FAILED' || retryingOrdinal() === ch.ordinal"
+          [disabled]="ch.status !== 'FAILED' || !ch.pdfAvailable || retryingOrdinal() === ch.ordinal"
           (click)="retry(ch)"
         >
           <mat-icon>refresh</mat-icon>

@@ -13,6 +13,10 @@ import { extractErrorMessage } from '../../../core/utils/http-error.util';
 import { Book } from '../../../core/models/book.model';
 import { Chapter } from '../../../core/models/chapter.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import {
+  AddChapterDialogComponent,
+  AddChapterDialogData
+} from '../add-chapter-dialog/add-chapter-dialog.component';
 
 const POLL_INTERVAL_MS = 4000;
 const MAX_EMPTY_POLLS = 15;
@@ -81,6 +85,20 @@ export class BookChaptersComponent implements OnInit, OnDestroy {
     } else {
       this.startExtraction();
     }
+  }
+
+  protected openAddChapter(): void {
+    const data: AddChapterDialogData = { bookId: this.bookId };
+    this.dialog
+      .open(AddChapterDialogComponent, { width: '640px', data })
+      .afterClosed()
+      .subscribe((created: Chapter | null) => {
+        if (!created) {
+          return;
+        }
+        this.notification.success(`Chapter "${created.title}" added.`);
+        this.loadChapters(false);
+      });
   }
 
   protected retry(chapter: Chapter): void {

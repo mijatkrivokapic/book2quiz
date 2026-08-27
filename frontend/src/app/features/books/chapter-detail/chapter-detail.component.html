@@ -22,7 +22,9 @@
           @if (book(); as b) {
             {{ b.title }} ·
           }
-          pages {{ ch.startPage }}–{{ ch.endPage }}
+          @if (ch.startPage > 0) {
+            pages {{ ch.startPage }}–{{ ch.endPage }} ·
+          }
           <span class="status-chip" [class]="'status-' + ch.status.toLowerCase()">{{ ch.status }}</span>
         </span>
       </div>
@@ -42,10 +44,12 @@
             </button>
           }
         } @else {
-          <a mat-stroked-button [href]="pdfUrl()" target="_blank" rel="noopener">
-            <mat-icon>picture_as_pdf</mat-icon>
-            PDF
-          </a>
+          @if (ch.pdfAvailable) {
+            <a mat-stroked-button [href]="pdfUrl()" target="_blank" rel="noopener">
+              <mat-icon>picture_as_pdf</mat-icon>
+              PDF
+            </a>
+          }
           <button mat-flat-button color="primary" (click)="startEdit()">
             <mat-icon>edit</mat-icon>
             Edit

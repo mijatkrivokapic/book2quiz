@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Chapter } from '../models/chapter.model';
+import { Chapter, ChapterSource } from '../models/chapter.model';
 
 @Injectable({ providedIn: 'root' })
 export class ChapterService {
@@ -20,6 +20,27 @@ export class ChapterService {
 
   getChapters(bookId: number): Observable<Chapter[]> {
     return this.http.get<Chapter[]>(`${this.baseUrl}/${bookId}/chapters`);
+  }
+
+  /**
+   * Manually creates a chapter. For source 'PDF' the file is converted to Markdown
+   * asynchronously (chapter starts PENDING); for 'MARKDOWN' the content is saved
+   * directly (chapter is DONE).
+   */
+  createChapter(
+    bookId: number,
+    input: { title: string; source: ChapterSource; file?: File | null; content?: string }
+  ): Observable<Chapter> {
+    const formData = new FormData();
+    formData.append('title', input.title);
+    formData.append('source', input.source);
+    if (input.source === 'PDF' && input.file) {
+      formData.append('file', input.file);
+    }
+    if (input.source === 'MARKDOWN') {
+      formData.append('content', input.content ?? '');
+    }
+    return this.http.post<Chapter>(`${this.baseUrl}/${bookId}/chapters`, formData);
   }
 
   getChapter(bookId: number, ordinal: number): Observable<Chapter> {
