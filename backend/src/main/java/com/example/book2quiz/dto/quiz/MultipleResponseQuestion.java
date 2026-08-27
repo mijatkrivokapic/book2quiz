@@ -1,4 +1,4 @@
-package com.example.book2quiz.quiz.dto;
+package com.example.book2quiz.dto.quiz;
 
 import java.util.List;
 
