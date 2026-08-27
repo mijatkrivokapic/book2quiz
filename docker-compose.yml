@@ -35,6 +35,8 @@ services:
       - "4200:4200"
     depends_on:
       - backend
+    environment:
+      - BACKEND_URL=http://backend:8080
     volumes:
       - ./frontend/src:/app/src
 
