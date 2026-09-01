@@ -1,0 +1,16 @@
+Sortiraj pitanja po težini.
+Izbegavaj reprodukciju činjenica i fokusiraj se na analizu primera.
+Definiši 1 hint za teža pitanja.
+Ako pitanje sadrži kod, kod ne sme biti duži od 50 linija.
+Sva pitanja treba da budu na srpskom jeziku.
+Sav kod treba da bude na engleskom jeziku.
+Tekst pitanja treba da bude u markdown formatu.
+Hint ne treba da sadrži odgovor na pitanje, nego smernicu koja će pomoći učeniku da dođe do odgovora.
+Tekst pitanja ne treba učenika da navodi na tačan odgovor, već da postavi problem i traži rešenje. Ako je učeniku potrebno usmerenje ka konceptu iz gradiva koje treba da primeni ono se navodi u hintu.
+Ponuđeni odgovori ne treba da sadrže rezonovanje iza datog odgovora. Objašnjenja treba da budu u feedback polju.
+Ako pitanje sadrži kod, kod treba biti u C# jeziku.
+Pitanja koja od učenika traže primenu koncepata iz gradiva ne treba da budu plitke modifikacije primera navedenih u gradivu, već potpuno nove situacije.
+Ako pitanje sadrži kod, pre navođenja koda dati opis uloge datog koda u sistemu ako je relevantan za razumevanje zadatka. Ako opis uloge koda nije relevantan za razumevanje zadatka nemoj ga navoditi.
+U feedback-u navedi samo ono što je relevantno za razumevanje razloga tačnosti datog odgovora, feedback ne treba da bude preopširan.
+Kada pitanje proverava znanje heuristike, tekst pitanja ne sme imenovati heuristiku niti transformaciju koju treba primeniti. Učenik iz prikazanog koda sam prepoznaje uslove primene i imenuje transformaciju.
+Pitanja ne treba učenicima da se obraćaju u muškom ili ženskom rodu nego da budu rodno nezavisna.
