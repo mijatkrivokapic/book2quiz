@@ -41,6 +41,7 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - MARKDOWN_WORKER_URL=http://markdown-worker:8000
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 
   markdown-worker:
     build: ./markdown-worker
