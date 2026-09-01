@@ -60,6 +60,20 @@ public class Chapter {
     @Column(columnDefinition = "TEXT")
     private String errorMessage;
 
+    // Status of the async question-generation job. Null until it is first requested.
+    @Enumerated(EnumType.STRING)
+    private ProcessingStatus questionGenerationStatus;
+
+    @Column(columnDefinition = "TEXT")
+    private String questionGenerationError;
+
+    // Status of the async characteristic-generation job. Null until first requested.
+    @Enumerated(EnumType.STRING)
+    private ProcessingStatus characteristicGenerationStatus;
+
+    @Column(columnDefinition = "TEXT")
+    private String characteristicGenerationError;
+
     @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StructuralCharacteristic> structuralCharacteristics = new ArrayList<>();
 
@@ -68,6 +82,9 @@ public class Chapter {
 
     @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Constraint> constraints = new ArrayList<>();
+
+    @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Question> questions = new ArrayList<>();
 
     @CreationTimestamp
     @Column(updatable = false)

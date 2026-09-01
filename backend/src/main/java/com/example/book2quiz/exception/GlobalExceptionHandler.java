@@ -13,6 +13,25 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(MaterialSizeLimitExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleMaterialTooLarge(MaterialSizeLimitExceededException ex) {
+        return body(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(QuizGenerationException.class)
+    public ResponseEntity<Map<String, Object>> handleQuizGeneration(QuizGenerationException ex) {
+        // Upstream model/output failure — surface as a bad gateway.
+        return body(HttpStatus.BAD_GATEWAY, ex.getMessage());
+    }
+
+    private ResponseEntity<Map<String, Object>> body(HttpStatus status, String message) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", Instant.now());
+        body.put("status", status.value());
+        body.put("message", message);
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
         Map<String, Object> body = new LinkedHashMap<>();
