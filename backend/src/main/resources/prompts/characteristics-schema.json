@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "analysis": {
+      "type": "string"
+    },
+    "structuralCharacteristics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "surfaceCharacteristics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "analysis",
+    "structuralCharacteristics",
+    "surfaceCharacteristics"
+  ],
+  "additionalProperties": false
+}
