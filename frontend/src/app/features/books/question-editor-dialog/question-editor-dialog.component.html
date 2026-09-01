@@ -1,0 +1,123 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit question' : 'Add question' }}</h2>
+
+<mat-dialog-content class="editor">
+  <div class="type-row">
+    <span class="field-label">Type</span>
+    <mat-button-toggle-group [value]="type()" (change)="onTypeChange($event.value)">
+      @for (opt of typeOptions; track opt.value) {
+        <mat-button-toggle [value]="opt.value">{{ opt.label }}</mat-button-toggle>
+      }
+    </mat-button-toggle-group>
+  </div>
+
+  <form [formGroup]="form">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Question text</mat-label>
+      <textarea matInput formControlName="text" rows="2"></textarea>
+    </mat-form-field>
+
+    @if (type() === 'MULTIPLE_CHOICE') {
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Correct option</mat-label>
+        <input matInput formControlName="correctOption" />
+      </mat-form-field>
+
+      <span class="field-label">Distractors</span>
+      <div formArrayName="distractors">
+        @for (ctrl of array('distractors').controls; track $index) {
+          <div class="row">
+            <mat-form-field appearance="outline" class="grow">
+              <input matInput [formControlName]="$index" />
+            </mat-form-field>
+            <button mat-icon-button type="button" (click)="removeAt('distractors', $index)">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+      <button mat-stroked-button type="button" (click)="addRow('distractors')">
+        <mat-icon>add</mat-icon> Add distractor
+      </button>
+
+      <mat-form-field appearance="outline" class="full-width feedback-field">
+        <mat-label>Feedback</mat-label>
+        <textarea matInput formControlName="feedback" rows="2"></textarea>
+      </mat-form-field>
+    }
+
+    @if (type() === 'MULTIPLE_RESPONSE') {
+      <span class="field-label">Options (check the correct ones)</span>
+      <div formArrayName="options">
+        @for (grp of array('options').controls; track $index) {
+          <div class="option-row" [formGroupName]="$index">
+            <mat-checkbox formControlName="isCorrect" matTooltip="Correct?"></mat-checkbox>
+            <mat-form-field appearance="outline" class="grow">
+              <mat-label>Option</mat-label>
+              <input matInput formControlName="text" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="grow">
+              <mat-label>Feedback</mat-label>
+              <input matInput formControlName="feedback" />
+            </mat-form-field>
+            <button mat-icon-button type="button" (click)="removeAt('options', $index)">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+      <button mat-stroked-button type="button" (click)="addOption()">
+        <mat-icon>add</mat-icon> Add option
+      </button>
+    }
+
+    @if (type() === 'SHORT_ANSWER') {
+      <span class="field-label">Acceptable answers</span>
+      <div formArrayName="acceptableAnswers">
+        @for (ctrl of array('acceptableAnswers').controls; track $index) {
+          <div class="row">
+            <mat-form-field appearance="outline" class="grow">
+              <input matInput [formControlName]="$index" />
+            </mat-form-field>
+            <button mat-icon-button type="button" (click)="removeAt('acceptableAnswers', $index)">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+      <button mat-stroked-button type="button" (click)="addRow('acceptableAnswers')">
+        <mat-icon>add</mat-icon> Add answer
+      </button>
+
+      <mat-form-field appearance="outline" class="full-width feedback-field">
+        <mat-label>Feedback</mat-label>
+        <textarea matInput formControlName="feedback" rows="2"></textarea>
+      </mat-form-field>
+    }
+
+    <span class="field-label">Hints (optional)</span>
+    <div formArrayName="hints">
+      @for (ctrl of array('hints').controls; track $index) {
+        <div class="row">
+          <mat-form-field appearance="outline" class="grow">
+            <input matInput [formControlName]="$index" />
+          </mat-form-field>
+          <button mat-icon-button type="button" (click)="removeAt('hints', $index)">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+    <button mat-stroked-button type="button" (click)="addRow('hints')">
+      <mat-icon>add</mat-icon> Add hint
+    </button>
+  </form>
+
+  @if (errorMessage()) {
+    <p class="error-text">{{ errorMessage() }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" (click)="submit()">{{ isEdit ? 'Save' : 'Add' }}</button>
+</mat-dialog-actions>

@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal, viewChildren } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,10 +18,14 @@ import { extractErrorMessage } from '../../../core/utils/http-error.util';
 import { renderMarkdown } from '../../../core/utils/markdown.util';
 import { Book } from '../../../core/models/book.model';
 import { Chapter } from '../../../core/models/chapter.model';
+import { CharacteristicStatus } from '../../../core/models/characteristic.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { EditableItemListComponent } from '../editable-item-list/editable-item-list.component';
+import { QuestionListComponent } from '../question-list/question-list.component';
 
-type DetailView = 'content' | 'characteristics';
+type DetailView = 'content' | 'characteristics' | 'questions';
+
+const CHAR_POLL_INTERVAL_MS = 3000;
 
 @Component({
   selector: 'app-chapter-detail',
@@ -35,13 +39,14 @@ type DetailView = 'content' | 'characteristics';
     MatInputModule,
     MatTooltipModule,
     MatButtonToggleModule,
-    EditableItemListComponent
+    EditableItemListComponent,
+    QuestionListComponent
   ],
   standalone: true,
   templateUrl: './chapter-detail.component.html',
   styleUrl: './chapter-detail.component.css'
 })
-export class ChapterDetailComponent implements OnInit {
+export class ChapterDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
@@ -85,6 +90,16 @@ export class ChapterDetailComponent implements OnInit {
   protected readonly removeSurface = (id: number) =>
     this.characteristicService.delete(this.bookId, this.ordinal, 'surface', id);
 
+  protected readonly updateStructuralStatus = (id: number, status: CharacteristicStatus) =>
+    this.characteristicService.updateStatus(this.bookId, this.ordinal, 'structural', id, status);
+  protected readonly updateSurfaceStatus = (id: number, status: CharacteristicStatus) =>
+    this.characteristicService.updateStatus(this.bookId, this.ordinal, 'surface', id, status);
+
+  // Async characteristic generation.
+  protected readonly generatingCharacteristics = signal(false);
+  private readonly characteristicLists = viewChildren(EditableItemListComponent);
+  private charPollHandle?: ReturnType<typeof setTimeout>;
+
   protected readonly loadConstraints = () => this.constraintService.list(this.bookId, this.ordinal);
   protected readonly createConstraint = (content: string) =>
     this.constraintService.create(this.bookId, this.ordinal, content);
@@ -118,6 +133,60 @@ export class ChapterDetailComponent implements OnInit {
         this.notFound.set(true);
         this.notification.error(extractErrorMessage(err, 'Failed to load the chapter.'));
       }
+    });
+
+    // Resume the characteristic-generation indicator if a run is still in progress.
+    this.characteristicService.getGenerationStatus(this.bookId, this.ordinal).subscribe({
+      next: s => {
+        if (s.status === 'PROCESSING') {
+          this.generatingCharacteristics.set(true);
+          this.scheduleCharPoll();
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.charPollHandle);
+  }
+
+  protected generateCharacteristics(): void {
+    this.generatingCharacteristics.set(true);
+    this.characteristicService.generate(this.bookId, this.ordinal).subscribe({
+      next: () => {
+        this.notification.success('Characteristic generation started.');
+        this.scheduleCharPoll();
+      },
+      error: err => {
+        this.generatingCharacteristics.set(false);
+        this.notification.error(extractErrorMessage(err, 'Failed to start characteristic generation.'));
+      }
+    });
+  }
+
+  private scheduleCharPoll(): void {
+    clearTimeout(this.charPollHandle);
+    this.charPollHandle = setTimeout(() => this.pollCharStatus(), CHAR_POLL_INTERVAL_MS);
+  }
+
+  private pollCharStatus(): void {
+    this.characteristicService.getGenerationStatus(this.bookId, this.ordinal).subscribe({
+      next: s => {
+        if (s.status === 'PROCESSING') {
+          this.scheduleCharPoll();
+        } else if (s.status === 'DONE') {
+          this.generatingCharacteristics.set(false);
+          this.notification.success('Characteristics generated (pending review).');
+          this.characteristicLists().forEach(list => list.reload());
+        } else if (s.status === 'FAILED') {
+          this.generatingCharacteristics.set(false);
+          this.notification.error(s.error ?? 'Characteristic generation failed.');
+        } else {
+          this.generatingCharacteristics.set(false);
+        }
+      },
+      error: () => this.scheduleCharPoll()
     });
   }
 

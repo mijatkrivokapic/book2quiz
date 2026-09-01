@@ -99,6 +99,10 @@
           <mat-icon>list_alt</mat-icon>
           Characteristics
         </mat-button-toggle>
+        <mat-button-toggle value="questions">
+          <mat-icon>quiz</mat-icon>
+          Questions
+        </mat-button-toggle>
       </mat-button-toggle-group>
     }
 
@@ -131,14 +135,31 @@
           </button>
         </div>
       }
-    } @else {
+    } @else if (view() === 'characteristics') {
       <div class="characteristics">
+        <div class="generate-bar">
+          <span class="generate-hint">Generate structural &amp; surface characteristics from this chapter's material.</span>
+          @if (generatingCharacteristics()) {
+            <button mat-flat-button color="primary" disabled>
+              <mat-spinner diameter="18" class="btn-spinner" />
+              Generating…
+            </button>
+          } @else {
+            <button mat-flat-button color="primary" (click)="generateCharacteristics()">
+              <mat-icon>auto_awesome</mat-icon>
+              Generate
+            </button>
+          }
+        </div>
+
         <app-editable-item-list
           label="Structural characteristics"
           [load]="loadStructural"
           [create]="createStructural"
           [update]="updateStructural"
           [remove]="removeStructural"
+          [approvable]="true"
+          [updateStatus]="updateStructuralStatus"
         />
         <app-editable-item-list
           label="Surface characteristics"
@@ -146,6 +167,8 @@
           [create]="createSurface"
           [update]="updateSurface"
           [remove]="removeSurface"
+          [approvable]="true"
+          [updateStatus]="updateSurfaceStatus"
         />
 
         <app-editable-item-list
@@ -156,6 +179,8 @@
           [remove]="removeConstraint"
         />
       </div>
+    } @else {
+      <app-question-list [bookId]="bookId" [ordinal]="ordinal" />
     }
   }
 }

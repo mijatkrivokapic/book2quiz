@@ -1,0 +1,116 @@
+<div class="questions-header">
+  <h3>Questions</h3>
+  <div class="header-actions">
+    @if (generating()) {
+      <button mat-flat-button color="primary" disabled>
+        <mat-spinner diameter="18" class="btn-spinner" />
+        Generating…
+      </button>
+    } @else {
+      <button mat-flat-button color="primary" (click)="generate()">
+        <mat-icon>auto_awesome</mat-icon>
+        Generate
+      </button>
+    }
+    <button mat-stroked-button (click)="add()">
+      <mat-icon>add</mat-icon>
+      Add question
+    </button>
+  </div>
+</div>
+
+@if (loading()) {
+  <div class="state-container">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (questions().length === 0) {
+  <div class="state-container empty-state">
+    <mat-icon>quiz</mat-icon>
+    <p>No questions yet.</p>
+    <p class="hint">Use “Generate” to create questions from this chapter, or add one manually.</p>
+  </div>
+} @else {
+  <div class="question-cards">
+    @for (q of questions(); track q.id) {
+      <div class="question-card">
+        <div class="card-top">
+          <span class="type-chip">{{ q.question.questionType }}</span>
+          <span class="origin-chip">{{ q.origin }}</span>
+          <span class="status-chip" [class]="'status-' + q.status.toLowerCase()">{{ q.status }}</span>
+          <span class="spacer"></span>
+
+          @if (q.status === 'PENDING') {
+            <button
+              mat-icon-button
+              matTooltip="Approve"
+              [disabled]="busyId() === q.id"
+              (click)="setStatus(q, 'APPROVED')"
+            >
+              <mat-icon>check_circle</mat-icon>
+            </button>
+          } @else {
+            <button
+              mat-icon-button
+              matTooltip="Revert to pending"
+              [disabled]="busyId() === q.id"
+              (click)="setStatus(q, 'PENDING')"
+            >
+              <mat-icon>undo</mat-icon>
+            </button>
+          }
+          <button mat-icon-button matTooltip="Edit" (click)="edit(q)">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button matTooltip="Delete" (click)="remove(q)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+
+        <p class="question-text">{{ q.question.text }}</p>
+
+        @if (q.question.questionType === 'MULTIPLE_CHOICE') {
+          <p class="correct"><mat-icon>check</mat-icon> {{ q.question.correctOption }}</p>
+          <ul class="options">
+            @for (d of q.question.distractors; track $index) {
+              <li>{{ d }}</li>
+            }
+          </ul>
+          @if (q.question.feedback) {
+            <p class="feedback">{{ q.question.feedback }}</p>
+          }
+        } @else if (q.question.questionType === 'MULTIPLE_RESPONSE') {
+          <ul class="options">
+            @for (o of q.question.options; track $index) {
+              <li [class.is-correct]="o.isCorrect">
+                <mat-icon>{{ o.isCorrect ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
+                <span>{{ o.text }}</span>
+                @if (o.feedback) {
+                  <span class="option-feedback">— {{ o.feedback }}</span>
+                }
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="answers-label">Acceptable answers:</p>
+          <ul class="options">
+            @for (a of q.question.acceptableAnswers; track $index) {
+              <li>{{ a }}</li>
+            }
+          </ul>
+          @if (q.question.feedback) {
+            <p class="feedback">{{ q.question.feedback }}</p>
+          }
+        }
+
+        @if (q.question.hints && q.question.hints.length > 0) {
+          <p class="hints-label">Hints:</p>
+          <ul class="hints">
+            @for (h of q.question.hints; track $index) {
+              <li>{{ h }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </div>
+}
