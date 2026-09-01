@@ -1,0 +1,118 @@
+package com.example.book2quiz.service;
+
+import com.example.book2quiz.dto.characteristic.CharacteristicGenerationRequest;
+import com.example.book2quiz.dto.characteristic.GeneratedCharacteristics;
+import com.example.book2quiz.model.Chapter;
+import com.example.book2quiz.model.CharacteristicOrigin;
+import com.example.book2quiz.model.CharacteristicStatus;
+import com.example.book2quiz.model.ProcessingStatus;
+import com.example.book2quiz.model.StructuralCharacteristic;
+import com.example.book2quiz.model.SurfaceCharacteristic;
+import com.example.book2quiz.repository.ChapterRepository;
+import com.example.book2quiz.repository.StructuralCharacteristicRepository;
+import com.example.book2quiz.repository.SurfaceCharacteristicRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Component;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+/**
+ * Runs characteristic generation on the {@code quizExecutor}. Assembles the chapter's
+ * material, calls the generator, persists the structural and surface characteristics as
+ * GENERATED / PENDING, and records the outcome on the chapter's
+ * {@code characteristicGenerationStatus} so the UI can poll for progress.
+ */
+@Component
+public class CharacteristicGenerationExecutor {
+
+    private static final Logger log = LoggerFactory.getLogger(CharacteristicGenerationExecutor.class);
+
+    private final ChapterRepository chapterRepository;
+    private final StructuralCharacteristicRepository structuralRepository;
+    private final SurfaceCharacteristicRepository surfaceRepository;
+    private final FileStorageService fileStorageService;
+    private final CharacteristicGenerationService generationService;
+
+    public CharacteristicGenerationExecutor(ChapterRepository chapterRepository,
+                                            StructuralCharacteristicRepository structuralRepository,
+                                            SurfaceCharacteristicRepository surfaceRepository,
+                                            FileStorageService fileStorageService,
+                                            CharacteristicGenerationService generationService) {
+        this.chapterRepository = chapterRepository;
+        this.structuralRepository = structuralRepository;
+        this.surfaceRepository = surfaceRepository;
+        this.fileStorageService = fileStorageService;
+        this.generationService = generationService;
+    }
+
+    @Async("quizExecutor")
+    public void runGeneration(int bookId, int ordinal) {
+        Chapter chapter = chapterRepository.findByBookIdAndOrdinal(bookId, ordinal).orElse(null);
+        if (chapter == null) {
+            log.warn("Book {} chapter {}: vanished before characteristic generation", bookId, ordinal);
+            return;
+        }
+        int chapterId = chapter.getId();
+
+        try {
+            String material = new String(
+                    fileStorageService.downloadFile(chapter.getMarkdownObjectKey()), StandardCharsets.UTF_8);
+            log.info("Book {} chapter {}: generating characteristics ({} chars material)", bookId, ordinal, material.length());
+
+            GeneratedCharacteristics result =
+                    generationService.generate(new CharacteristicGenerationRequest(List.of(material)));
+
+            persist(chapterId, result);
+            finish(chapterId, ProcessingStatus.DONE, null);
+            log.info("Book {} chapter {}: generated {} structural + {} surface characteristic(s)",
+                    bookId, ordinal, result.structuralCharacteristics().size(), result.surfaceCharacteristics().size());
+        } catch (Exception e) {
+            log.error("Book {} chapter {}: characteristic generation failed", bookId, ordinal, e);
+            finish(chapterId, ProcessingStatus.FAILED, truncate(e.getMessage()));
+        }
+    }
+
+    private void persist(int chapterId, GeneratedCharacteristics result) {
+        Chapter chapter = chapterRepository.findById(chapterId).orElseThrow();
+        for (String content : result.structuralCharacteristics()) {
+            if (content == null || content.isBlank()) {
+                continue;
+            }
+            StructuralCharacteristic c = new StructuralCharacteristic();
+            c.setChapter(chapter);
+            c.setContent(content.strip());
+            c.setOrigin(CharacteristicOrigin.GENERATED);
+            c.setStatus(CharacteristicStatus.PENDING);
+            structuralRepository.save(c);
+        }
+        for (String content : result.surfaceCharacteristics()) {
+            if (content == null || content.isBlank()) {
+                continue;
+            }
+            SurfaceCharacteristic c = new SurfaceCharacteristic();
+            c.setChapter(chapter);
+            c.setContent(content.strip());
+            c.setOrigin(CharacteristicOrigin.GENERATED);
+            c.setStatus(CharacteristicStatus.PENDING);
+            surfaceRepository.save(c);
+        }
+    }
+
+    private void finish(int chapterId, ProcessingStatus status, String error) {
+        chapterRepository.findById(chapterId).ifPresent(chapter -> {
+            chapter.setCharacteristicGenerationStatus(status);
+            chapter.setCharacteristicGenerationError(error);
+            chapterRepository.save(chapter);
+        });
+    }
+
+    private String truncate(String message) {
+        if (message == null) {
+            return "Unknown error";
+        }
+        return message.length() > 2000 ? message.substring(0, 2000) : message;
+    }
+}

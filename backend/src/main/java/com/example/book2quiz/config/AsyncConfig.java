@@ -21,4 +21,19 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    /**
+     * Dedicated executor for the long-running quiz-generation API calls, kept separate
+     * from the chapter pipeline so a slow generation never starves chapter conversion.
+     */
+    @Bean(name = "quizExecutor")
+    public Executor quizExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("quiz-exec-");
+        executor.initialize();
+        return executor;
+    }
 }
