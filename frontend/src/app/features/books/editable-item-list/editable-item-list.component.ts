@@ -9,15 +9,20 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { NotificationService } from '../../../core/services/notification.service';
 import { extractErrorMessage } from '../../../core/utils/http-error.util';
 
+export type ReviewStatus = 'PENDING' | 'APPROVED';
+
 export interface EditableItem {
   id: number;
   content: string;
+  status?: ReviewStatus;
+  origin?: string;
 }
 
 type LoadFn = () => Observable<EditableItem[]>;
 type CreateFn = (content: string) => Observable<EditableItem>;
 type UpdateFn = (id: number, content: string) => Observable<EditableItem>;
 type RemoveFn = (id: number) => Observable<void>;
+type StatusFn = (id: number, status: ReviewStatus) => Observable<EditableItem>;
 
 /**
  * Generic inline-editable list of `{ id, content }` items. The parent supplies the
@@ -46,6 +51,9 @@ export class EditableItemListComponent implements OnInit {
   readonly create = input.required<CreateFn>();
   readonly update = input.required<UpdateFn>();
   readonly remove = input.required<RemoveFn>();
+  /** When true, each item shows its review status and an approve/revert control. */
+  readonly approvable = input(false);
+  readonly updateStatus = input<StatusFn | undefined>(undefined);
 
   protected readonly items = signal<EditableItem[]>([]);
   protected readonly loading = signal(true);
@@ -58,6 +66,12 @@ export class EditableItemListComponent implements OnInit {
   protected readonly busyId = signal<number | null>(null);
 
   ngOnInit(): void {
+    this.reload();
+  }
+
+  /** Re-fetches the list (used after external changes such as generation). */
+  reload(): void {
+    this.loading.set(true);
     this.load()().subscribe({
       next: items => {
         this.items.set(items);
@@ -66,6 +80,24 @@ export class EditableItemListComponent implements OnInit {
       error: err => {
         this.loading.set(false);
         this.notification.error(extractErrorMessage(err, `Failed to load ${this.label().toLowerCase()}.`));
+      }
+    });
+  }
+
+  protected setStatus(item: EditableItem, status: ReviewStatus): void {
+    const fn = this.updateStatus();
+    if (!fn) {
+      return;
+    }
+    this.busyId.set(item.id);
+    fn(item.id, status).subscribe({
+      next: updated => {
+        this.items.update(list => list.map(c => (c.id === updated.id ? updated : c)));
+        this.busyId.set(null);
+      },
+      error: err => {
+        this.busyId.set(null);
+        this.notification.error(extractErrorMessage(err, 'Failed to update the status.'));
       }
     });
   }

@@ -36,7 +36,31 @@
               </div>
             } @else {
               <span class="item-content">{{ item.content }}</span>
+              @if (approvable() && item.status) {
+                <span class="status-chip" [class]="'status-' + item.status.toLowerCase()">{{ item.status }}</span>
+              }
               <div class="item-actions">
+                @if (approvable() && item.status) {
+                  @if (item.status === 'PENDING') {
+                    <button
+                      mat-icon-button
+                      matTooltip="Approve"
+                      [disabled]="busyId() === item.id"
+                      (click)="setStatus(item, 'APPROVED')"
+                    >
+                      <mat-icon>check_circle</mat-icon>
+                    </button>
+                  } @else {
+                    <button
+                      mat-icon-button
+                      matTooltip="Revert to pending"
+                      [disabled]="busyId() === item.id"
+                      (click)="setStatus(item, 'PENDING')"
+                    >
+                      <mat-icon>undo</mat-icon>
+                    </button>
+                  }
+                }
                 <button mat-icon-button matTooltip="Edit" (click)="startEdit(item)">
                   <mat-icon>edit</mat-icon>
                 </button>

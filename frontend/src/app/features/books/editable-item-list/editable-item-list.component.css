@@ -47,6 +47,26 @@
   flex-shrink: 0;
 }
 
+.status-chip {
+  align-self: center;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.status-pending {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.status-approved {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
 .add-row {
   display: flex;
   align-items: flex-start;
