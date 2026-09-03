@@ -16,6 +16,15 @@
       <mat-icon>add</mat-icon>
       Add question
     </button>
+    <button
+      mat-stroked-button
+      matTooltip="Copy all approved questions as a JSON array"
+      [disabled]="approvedCount() === 0"
+      (click)="exportApproved()"
+    >
+      <mat-icon>content_copy</mat-icon>
+      Export approved ({{ approvedCount() }})
+    </button>
   </div>
 </div>
 
@@ -58,6 +67,9 @@
               <mat-icon>undo</mat-icon>
             </button>
           }
+          <button mat-icon-button matTooltip="Copy JSON" (click)="exportQuestion(q)">
+            <mat-icon>content_copy</mat-icon>
+          </button>
           <button mat-icon-button matTooltip="Edit" (click)="edit(q)">
             <mat-icon>edit</mat-icon>
           </button>

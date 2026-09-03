@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject, input, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, input, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -35,6 +35,10 @@ export class QuestionListComponent implements OnInit, OnDestroy {
   protected readonly loading = signal(true);
   protected readonly generating = signal(false);
   protected readonly busyId = signal<number | null>(null);
+
+  protected readonly approvedCount = computed(
+    () => this.questions().filter(q => q.status === 'APPROVED').length
+  );
 
   private pollHandle?: ReturnType<typeof setTimeout>;
 
@@ -168,6 +172,31 @@ export class QuestionListComponent implements OnInit, OnDestroy {
         error: err => this.notification.error(extractErrorMessage(err, 'Failed to delete the question.'))
       });
     });
+  }
+
+  /** Copies a single question's JSON payload to the clipboard. */
+  protected exportQuestion(question: Question): void {
+    this.copyJson(question.question, 'Question JSON copied to clipboard.');
+  }
+
+  /** Copies a JSON array of all APPROVED questions' payloads to the clipboard. */
+  protected exportApproved(): void {
+    const approved = this.questions()
+      .filter(q => q.status === 'APPROVED')
+      .map(q => q.question);
+    if (approved.length === 0) {
+      this.notification.error('No approved questions to export.');
+      return;
+    }
+    this.copyJson(approved, `Copied ${approved.length} approved question(s) to clipboard.`);
+  }
+
+  private copyJson(data: unknown, successMessage: string): void {
+    const json = JSON.stringify(data, null, 2);
+    navigator.clipboard.writeText(json).then(
+      () => this.notification.success(successMessage),
+      () => this.notification.error('Could not copy to clipboard.')
+    );
   }
 
   private load(): void {
