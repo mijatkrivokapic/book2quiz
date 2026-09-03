@@ -9,20 +9,20 @@ import java.util.List;
 /**
  * Builds the user message from the request by joining XML sections in a fixed order:
  * instructional_items, structural_characteristics, surface_characteristics, constraints
- * (global base constraints first, then per-request local constraints). Empty sections
- * are omitted entirely.
+ * (global constraints from the database first, then per-request local constraints).
+ * Empty sections are omitted entirely.
  */
 @Component
 public class QuizPromptBuilder {
 
-    private final QuizPromptLoader promptLoader;
+    private final GlobalConstraintService globalConstraintService;
 
-    public QuizPromptBuilder(QuizPromptLoader promptLoader) {
-        this.promptLoader = promptLoader;
+    public QuizPromptBuilder(GlobalConstraintService globalConstraintService) {
+        this.globalConstraintService = globalConstraintService;
     }
 
     public String buildUserMessage(QuizGenerationRequest request) {
-        List<String> constraints = new ArrayList<>(promptLoader.getBaseConstraints());
+        List<String> constraints = new ArrayList<>(globalConstraintService.getContents());
         constraints.addAll(request.localConstraintsOrEmpty());
 
         List<String> sections = new ArrayList<>();

@@ -135,7 +135,6 @@ public class QuizProperties {
 
     public static class Prompt {
         private Resource systemFile = new ClassPathResource("prompts/quiz-system.txt");
-        private Resource baseConstraintsFile = new ClassPathResource("prompts/quiz-base-constraints.txt");
         private Resource schemaFile = new ClassPathResource("prompts/quiz-schema.json");
 
         public Resource getSystemFile() {
@@ -144,14 +143,6 @@ public class QuizProperties {
 
         public void setSystemFile(Resource systemFile) {
             this.systemFile = systemFile;
-        }
-
-        public Resource getBaseConstraintsFile() {
-            return baseConstraintsFile;
-        }
-
-        public void setBaseConstraintsFile(Resource baseConstraintsFile) {
-            this.baseConstraintsFile = baseConstraintsFile;
         }
 
         public Resource getSchemaFile() {
