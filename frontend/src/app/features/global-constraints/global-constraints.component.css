@@ -1,0 +1,33 @@
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 16px;
+  color: rgba(0, 0, 0, 0.6);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.page-header h1 {
+  margin: 0 0 8px;
+  font-size: 1.75rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.intro {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9rem;
+  max-width: 720px;
+  margin: 0 0 24px;
+}
+
+.list-wrapper {
+  max-width: 820px;
+}

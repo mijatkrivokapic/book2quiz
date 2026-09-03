@@ -1,0 +1,26 @@
+<a routerLink="/courses" class="back-link">
+  <mat-icon>arrow_back</mat-icon>
+  Back to courses
+</a>
+
+<div class="page-header">
+  <h1>
+    <mat-icon>rule</mat-icon>
+    Global constraints
+  </h1>
+</div>
+
+<p class="intro">
+  These constraints apply to <strong>every</strong> quiz generation across all courses and
+  chapters. They are added before any per-chapter (local) constraints.
+</p>
+
+<div class="list-wrapper">
+  <app-editable-item-list
+    label="Global constraints"
+    [load]="load"
+    [create]="create"
+    [update]="update"
+    [remove]="remove"
+  />
+</div>

@@ -27,5 +27,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/books/chapter-detail/chapter-detail.component').then(m => m.ChapterDetailComponent)
   },
+  {
+    path: 'global-constraints',
+    loadComponent: () =>
+      import('./features/global-constraints/global-constraints.component').then(m => m.GlobalConstraintsComponent)
+  },
   { path: '**', redirectTo: 'courses' }
 ];
