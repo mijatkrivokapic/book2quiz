@@ -94,26 +94,29 @@
           <p class="regen-error"><mat-icon>error_outline</mat-icon> {{ q.regenerationError }}</p>
         }
 
-        <p class="question-text">{{ q.question.text }}</p>
+        <div class="question-text markdown-body" [innerHTML]="render(q.question.text)"></div>
 
         @if (q.question.questionType === 'MULTIPLE_CHOICE') {
-          <p class="correct"><mat-icon>check</mat-icon> {{ q.question.correctOption }}</p>
+          <p class="correct">
+            <mat-icon>check</mat-icon>
+            <span class="markdown-body" [innerHTML]="renderInline(q.question.correctOption ?? '')"></span>
+          </p>
           <ul class="options">
             @for (d of q.question.distractors; track $index) {
-              <li>{{ d }}</li>
+              <li><span class="markdown-body" [innerHTML]="renderInline(d)"></span></li>
             }
           </ul>
           @if (q.question.feedback) {
-            <p class="feedback">{{ q.question.feedback }}</p>
+            <div class="feedback markdown-body" [innerHTML]="render(q.question.feedback)"></div>
           }
         } @else if (q.question.questionType === 'MULTIPLE_RESPONSE') {
           <ul class="options">
             @for (o of q.question.options; track $index) {
               <li [class.is-correct]="o.isCorrect">
                 <mat-icon>{{ o.isCorrect ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
-                <span>{{ o.text }}</span>
+                <span class="markdown-body" [innerHTML]="renderInline(o.text)"></span>
                 @if (o.feedback) {
-                  <span class="option-feedback">— {{ o.feedback }}</span>
+                  <span class="option-feedback">— <span class="markdown-body" [innerHTML]="renderInline(o.feedback)"></span></span>
                 }
               </li>
             }
@@ -122,11 +125,11 @@
           <p class="answers-label">Acceptable answers:</p>
           <ul class="options">
             @for (a of q.question.acceptableAnswers; track $index) {
-              <li>{{ a }}</li>
+              <li><span class="markdown-body" [innerHTML]="renderInline(a)"></span></li>
             }
           </ul>
           @if (q.question.feedback) {
-            <p class="feedback">{{ q.question.feedback }}</p>
+            <div class="feedback markdown-body" [innerHTML]="render(q.question.feedback)"></div>
           }
         }
 
@@ -134,7 +137,7 @@
           <p class="hints-label">Hints:</p>
           <ul class="hints">
             @for (h of q.question.hints; track $index) {
-              <li>{{ h }}</li>
+              <li><span class="markdown-body" [innerHTML]="renderInline(h)"></span></li>
             }
           </ul>
         }

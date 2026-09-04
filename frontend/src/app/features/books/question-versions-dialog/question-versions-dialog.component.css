@@ -95,6 +95,10 @@
 
 .version-text {
   margin: 6px 0 0;
-  white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Rendered Markdown: drop the trailing margin so the version row stays compact. */
+.version-text.markdown-body > :last-child {
+  margin-bottom: 0;
 }

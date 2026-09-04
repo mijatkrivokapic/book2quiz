@@ -129,7 +129,24 @@
   margin: 0 0 10px;
   font-weight: 500;
   line-height: 1.5;
-  white-space: pre-wrap;
+}
+
+/* Rendered Markdown blocks: drop the trailing margin so card spacing stays tight. */
+.question-text.markdown-body > :last-child,
+.feedback.markdown-body > :last-child {
+  margin-bottom: 0;
+}
+
+/* Inline Markdown spans (options, answers, hints, correct option, feedback snippets)
+   should inherit the surrounding text color/size; only inline code/emphasis styling
+   comes from .markdown-body. */
+.correct .markdown-body,
+.options li .markdown-body,
+.option-feedback .markdown-body,
+.hints li .markdown-body {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .correct {
@@ -191,6 +208,12 @@
 
 .feedback {
   margin: 4px 0 0;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9rem;
+}
+
+/* Keep block-rendered feedback muted (markdown-body would otherwise darken/enlarge it). */
+.feedback.markdown-body {
   color: rgba(0, 0, 0, 0.6);
   font-size: 0.9rem;
 }

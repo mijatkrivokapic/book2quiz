@@ -45,7 +45,7 @@
           @if (v.guideline) {
             <p class="guideline"><mat-icon>tips_and_updates</mat-icon> {{ v.guideline }}</p>
           }
-          <p class="version-text">{{ v.question.text }}</p>
+          <div class="version-text markdown-body" [innerHTML]="render(v.question.text)"></div>
         </li>
       }
     </ul>

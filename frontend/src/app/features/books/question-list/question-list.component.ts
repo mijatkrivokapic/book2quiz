@@ -7,6 +7,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { QuestionService } from '../../../core/services/question.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { extractErrorMessage } from '../../../core/utils/http-error.util';
+import { renderMarkdown, renderMarkdownInline } from '../../../core/utils/markdown.util';
 import { Question, QuestionPayload, QuestionStatus } from '../../../core/models/question.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import {
@@ -35,6 +36,10 @@ export class QuestionListComponent implements OnInit, OnDestroy {
 
   readonly bookId = input.required<number>();
   readonly ordinal = input.required<number>();
+
+  // Markdown renderers for the template ([innerHTML] output is sanitized by Angular).
+  protected readonly render = (md: string) => renderMarkdown(md);
+  protected readonly renderInline = (md: string) => renderMarkdownInline(md);
 
   protected readonly questions = signal<Question[]>([]);
   protected readonly loading = signal(true);

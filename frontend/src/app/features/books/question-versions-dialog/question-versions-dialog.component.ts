@@ -7,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { QuestionService } from '../../../core/services/question.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { extractErrorMessage } from '../../../core/utils/http-error.util';
+import { renderMarkdown } from '../../../core/utils/markdown.util';
 import { QuestionPayload, QuestionVersion } from '../../../core/models/question.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import {
@@ -39,6 +40,9 @@ export class QuestionVersionsDialogComponent implements OnInit {
   private readonly questionService = inject(QuestionService);
   private readonly notification = inject(NotificationService);
   private readonly dialog = inject(MatDialog);
+
+  // Markdown renderer for the template ([innerHTML] output is sanitized by Angular).
+  protected readonly render = (md: string) => renderMarkdown(md);
 
   protected readonly versions = signal<QuestionVersion[]>([]);
   protected readonly loading = signal(true);
