@@ -5,7 +5,6 @@ import com.example.book2quiz.dto.course.CreateCourseDTO;
 import com.example.book2quiz.dto.course.GetCourseDTO;
 import com.example.book2quiz.dto.course.UpdateCourseDTO;
 import com.example.book2quiz.exception.ResourceNotFoundException;
-import com.example.book2quiz.model.Book;
 import com.example.book2quiz.model.Course;
 import com.example.book2quiz.repository.CourseRepository;
 import org.modelmapper.ModelMapper;
@@ -20,10 +19,12 @@ public class CourseService{
 
     private final CourseRepository courseRepository;
     private final ModelMapper modelMapper;
+    private final BookService bookService;
 
-    public CourseService(CourseRepository courseRepository, ModelMapper modelMapper) {
+    public CourseService(CourseRepository courseRepository, ModelMapper modelMapper, BookService bookService) {
         this.courseRepository = courseRepository;
         this.modelMapper = modelMapper;
+        this.bookService = bookService;
     }
 
     public GetCourseDTO createCourse(CreateCourseDTO dto) {
@@ -63,7 +64,7 @@ public class CourseService{
     public List<GetBookDTO> getBooksByCourse(Integer id) {
         Course course = findCourseOrThrow(id);
         return course.getBooks().stream()
-                .map(book -> modelMapper.map(book, GetBookDTO.class))
+                .map(bookService::toGetBookDTO)
                 .toList();
     }
 }

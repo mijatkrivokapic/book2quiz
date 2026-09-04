@@ -88,7 +88,7 @@ public class BookService {
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
     }
 
-    private GetBookDTO toGetBookDTO(Book book) {
+    public GetBookDTO toGetBookDTO(Book book) {
         String downloadUrl = fileStorageService.getPreSignedUrl(book.getFileKey());
         return new GetBookDTO(book.getId(), book.getTitle(), book.getCourse().getId(), downloadUrl);
     }
