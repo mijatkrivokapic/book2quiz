@@ -42,6 +42,7 @@ public class QuestionGenerationExecutor {
     private final ConstraintRepository constraintRepository;
     private final FileStorageService fileStorageService;
     private final QuizGenerationService quizGenerationService;
+    private final QuestionVersionManager versionManager;
     private final ObjectMapper objectMapper;
 
     public QuestionGenerationExecutor(ChapterRepository chapterRepository,
@@ -51,6 +52,7 @@ public class QuestionGenerationExecutor {
                                       ConstraintRepository constraintRepository,
                                       FileStorageService fileStorageService,
                                       QuizGenerationService quizGenerationService,
+                                      QuestionVersionManager versionManager,
                                       ObjectMapper objectMapper) {
         this.chapterRepository = chapterRepository;
         this.questionRepository = questionRepository;
@@ -59,6 +61,7 @@ public class QuestionGenerationExecutor {
         this.constraintRepository = constraintRepository;
         this.fileStorageService = fileStorageService;
         this.quizGenerationService = quizGenerationService;
+        this.versionManager = versionManager;
         this.objectMapper = objectMapper;
     }
 
@@ -106,7 +109,8 @@ public class QuestionGenerationExecutor {
             question.setContent(serialize(payload));
             question.setOrigin(QuestionOrigin.GENERATED);
             question.setStatus(QuestionStatus.PENDING);
-            questionRepository.save(question);
+            question = questionRepository.save(question);
+            versionManager.createInitialVersion(question);
         }
     }
 

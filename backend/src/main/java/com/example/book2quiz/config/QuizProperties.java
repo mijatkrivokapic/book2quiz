@@ -136,6 +136,8 @@ public class QuizProperties {
     public static class Prompt {
         private Resource systemFile = new ClassPathResource("prompts/quiz-system.txt");
         private Resource schemaFile = new ClassPathResource("prompts/quiz-schema.json");
+        private Resource regenerateSystemFile = new ClassPathResource("prompts/quiz-regenerate-system.txt");
+        private Resource regenerateSchemaFile = new ClassPathResource("prompts/quiz-regenerate-schema.json");
 
         public Resource getSystemFile() {
             return systemFile;
@@ -143,6 +145,22 @@ public class QuizProperties {
 
         public void setSystemFile(Resource systemFile) {
             this.systemFile = systemFile;
+        }
+
+        public Resource getRegenerateSystemFile() {
+            return regenerateSystemFile;
+        }
+
+        public void setRegenerateSystemFile(Resource regenerateSystemFile) {
+            this.regenerateSystemFile = regenerateSystemFile;
+        }
+
+        public Resource getRegenerateSchemaFile() {
+            return regenerateSchemaFile;
+        }
+
+        public void setRegenerateSchemaFile(Resource regenerateSchemaFile) {
+            this.regenerateSchemaFile = regenerateSchemaFile;
         }
 
         public Resource getSchemaFile() {

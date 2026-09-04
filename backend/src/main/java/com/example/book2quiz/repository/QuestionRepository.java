@@ -11,4 +11,6 @@ public interface QuestionRepository extends JpaRepository<Question, Integer> {
     List<Question> findByChapterIdOrderByIdAsc(Integer chapterId);
 
     Optional<Question> findByIdAndChapterId(Integer id, Integer chapterId);
+
+    List<Question> findByActiveVersionIdIsNull();
 }

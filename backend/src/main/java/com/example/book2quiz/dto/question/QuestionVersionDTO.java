@@ -1,21 +1,18 @@
 package com.example.book2quiz.dto.question;
 
-import com.example.book2quiz.model.ProcessingStatus;
+import com.example.book2quiz.dto.quiz.GeneratedQuestion;
 import com.example.book2quiz.model.QuestionOrigin;
 import com.example.book2quiz.model.QuestionStatus;
-import com.example.book2quiz.dto.quiz.GeneratedQuestion;
 
 import java.time.Instant;
 
-public record QuestionResponse(
+public record QuestionVersionDTO(
         Integer id,
+        boolean active,
         QuestionStatus status,
         QuestionOrigin origin,
+        String guideline,
         GeneratedQuestion question,
-        Integer activeVersionId,
-        int versionCount,
-        ProcessingStatus regenerationStatus,
-        String regenerationError,
         Instant createdAt,
         Instant updatedAt
 ) {

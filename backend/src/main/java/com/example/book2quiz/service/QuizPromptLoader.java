@@ -18,13 +18,20 @@ import java.nio.charset.StandardCharsets;
 public class QuizPromptLoader {
 
     private final String systemPrompt;
+    private final String regenerateSystemPrompt;
 
     public QuizPromptLoader(QuizProperties properties) {
         this.systemPrompt = readNonEmpty(properties.getPrompt().getSystemFile(), "quiz.prompt.system-file");
+        this.regenerateSystemPrompt = readNonEmpty(
+                properties.getPrompt().getRegenerateSystemFile(), "quiz.prompt.regenerate-system-file");
     }
 
     public String getSystemPrompt() {
         return systemPrompt;
+    }
+
+    public String getRegenerateSystemPrompt() {
+        return regenerateSystemPrompt;
     }
 
     private String readNonEmpty(Resource resource, String property) {

@@ -7,7 +7,10 @@ import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.OutputConfig;
 import com.example.book2quiz.dto.quiz.GeneratedQuiz;
+import com.example.book2quiz.dto.quiz.QuestionRegenerationRequest;
 import com.example.book2quiz.dto.quiz.QuizGenerationRequest;
+import com.example.book2quiz.dto.quiz.RegeneratedQuestion;
+import com.example.book2quiz.dto.quiz.RegeneratedQuestionResult;
 import com.example.book2quiz.dto.quiz.TokenUsage;
 import com.example.book2quiz.config.QuizProperties;
 import com.example.book2quiz.dto.quiz.QuizGenerationResult;
@@ -17,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -44,6 +48,7 @@ public class AnthropicQuizGenerator implements QuizGenerator {
     private final ObjectMapper objectMapper;
 
     private final OutputConfig outputConfig;
+    private final OutputConfig regenerateOutputConfig;
 
     public AnthropicQuizGenerator(QuizProperties properties,
                                   QuizPromptBuilder promptBuilder,
@@ -55,45 +60,64 @@ public class AnthropicQuizGenerator implements QuizGenerator {
         this.promptLoader = promptLoader;
         this.clientProvider = clientProvider;
         this.objectMapper = objectMapper;
-        this.outputConfig = properties.getAnthropic().getStructuredOutputs().isEnabled()
-                ? buildOutputConfig(properties)
-                : null;
+        boolean structured = properties.getAnthropic().getStructuredOutputs().isEnabled();
+        this.outputConfig = structured ? buildOutputConfig(properties.getPrompt().getSchemaFile()) : null;
+        this.regenerateOutputConfig =
+                structured ? buildOutputConfig(properties.getPrompt().getRegenerateSchemaFile()) : null;
     }
 
     @Override
     public GeneratedQuiz generate(QuizGenerationRequest request) {
         String userMessage = promptBuilder.buildUserMessage(request);
-        MessageCreateParams params = buildParams(userMessage);
+        MessageCreateParams params = buildParams(promptLoader.getSystemPrompt(), userMessage, outputConfig);
 
-        Message response;
+        Message response = call(params);
+
+        QuizGenerationResult result = parse(extractText(response), QuizGenerationResult.class, "quiz");
+        return new GeneratedQuiz(result.analysis(), result.questions(), usageOf(response));
+    }
+
+    @Override
+    public RegeneratedQuestion regenerate(QuestionRegenerationRequest request) {
+        String userMessage = promptBuilder.buildRegenerationUserMessage(request);
+        MessageCreateParams params =
+                buildParams(promptLoader.getRegenerateSystemPrompt(), userMessage, regenerateOutputConfig);
+
+        Message response = call(params);
+
+        RegeneratedQuestionResult result = parse(extractText(response), RegeneratedQuestionResult.class, "question");
+        return new RegeneratedQuestion(result.analysis(), result.question(), usageOf(response));
+    }
+
+    private Message call(MessageCreateParams params) {
         try {
-            response = clientProvider.get().messages().create(params);
+            return clientProvider.get().messages().create(params);
         } catch (AnthropicException e) {
             throw new QuizApiException("Anthropic API call failed: " + e.getMessage(), e);
         }
+    }
 
-        QuizGenerationResult result = parse(extractText(response));
-        TokenUsage usage = new TokenUsage(
+    private TokenUsage usageOf(Message response) {
+        return new TokenUsage(
                 properties.getAnthropic().getModel(),
                 response.usage().inputTokens(),
                 response.usage().outputTokens());
-        return new GeneratedQuiz(result.analysis(), result.questions(), usage);
     }
 
-    private MessageCreateParams buildParams(String userMessage) {
+    private MessageCreateParams buildParams(String systemPrompt, String userMessage, OutputConfig config) {
         QuizProperties.Anthropic anthropic = properties.getAnthropic();
         MessageCreateParams.Builder builder = MessageCreateParams.builder()
                 .model(anthropic.getModel())
                 .maxTokens(anthropic.getMaxTokens())
-                .system(promptLoader.getSystemPrompt())
+                .system(systemPrompt)
                 .addUserMessage(userMessage);
 
         if (anthropic.getTemperature() != null) {
             builder.temperature(anthropic.getTemperature());
         }
 
-        if (outputConfig != null) {
-            builder.outputConfig(outputConfig);
+        if (config != null) {
+            builder.outputConfig(config);
             String beta = anthropic.getStructuredOutputs().getBetaHeader();
             if (beta != null && !beta.isBlank()) {
                 builder.putAdditionalHeader("anthropic-beta", beta);
@@ -102,9 +126,9 @@ public class AnthropicQuizGenerator implements QuizGenerator {
         return builder.build();
     }
 
-    private OutputConfig buildOutputConfig(QuizProperties properties) {
+    private OutputConfig buildOutputConfig(Resource schemaResource) {
         try {
-            JsonNode schema = objectMapper.readTree(properties.getPrompt().getSchemaFile().getInputStream());
+            JsonNode schema = objectMapper.readTree(schemaResource.getInputStream());
             JsonOutputFormat.Schema.Builder schemaBuilder = JsonOutputFormat.Schema.builder();
             Iterator<Map.Entry<String, JsonNode>> fields = schema.fields();
             while (fields.hasNext()) {
@@ -116,7 +140,7 @@ public class AnthropicQuizGenerator implements QuizGenerator {
                     .build();
         } catch (IOException e) {
             throw new IllegalStateException(
-                    "Failed to load quiz JSON schema from " + properties.getPrompt().getSchemaFile().getDescription(), e);
+                    "Failed to load quiz JSON schema from " + schemaResource.getDescription(), e);
         }
     }
 
@@ -126,16 +150,16 @@ public class AnthropicQuizGenerator implements QuizGenerator {
         return sb.toString();
     }
 
-    private QuizGenerationResult parse(String raw) {
+    private <T> T parse(String raw, Class<T> type, String label) {
         String cleaned = stripMarkdownFences(raw);
         if (cleaned.isBlank()) {
             throw new InvalidQuizOutputException("Model returned an empty response");
         }
         try {
-            return objectMapper.readValue(cleaned, QuizGenerationResult.class);
+            return objectMapper.readValue(cleaned, type);
         } catch (IOException e) {
             log.debug("Unparseable model output: {}", cleaned);
-            throw new InvalidQuizOutputException("Failed to parse model output as a quiz: " + e.getMessage(), e);
+            throw new InvalidQuizOutputException("Failed to parse model output as a " + label + ": " + e.getMessage(), e);
         }
     }
 

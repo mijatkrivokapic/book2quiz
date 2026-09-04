@@ -2,7 +2,9 @@ package com.example.book2quiz.service;
 
 import com.example.book2quiz.config.QuizProperties;
 import com.example.book2quiz.dto.quiz.GeneratedQuiz;
+import com.example.book2quiz.dto.quiz.QuestionRegenerationRequest;
 import com.example.book2quiz.dto.quiz.QuizGenerationRequest;
+import com.example.book2quiz.dto.quiz.RegeneratedQuestion;
 import com.example.book2quiz.dto.quiz.TokenUsage;
 import com.example.book2quiz.exception.MaterialSizeLimitExceededException;
 import com.example.book2quiz.exception.QuizGenerationException;
@@ -43,7 +45,7 @@ public class QuizGenerationService {
 
     public GeneratedQuiz generate(QuizGenerationRequest request) {
         validateRequest(request);
-        enforceMaterialSizeLimit(request);
+        enforceMaterialSizeLimit(request.instructionalItemsOrEmpty());
 
         long start = System.currentTimeMillis();
         GeneratedQuiz quiz = quizGenerator.generate(request);
@@ -59,6 +61,34 @@ public class QuizGenerationService {
         return quiz;
     }
 
+    /** Regenerates a single question: validate context, enforce size limit, call the port,
+     * validate the one question, log usage. */
+    public RegeneratedQuestion regenerate(QuestionRegenerationRequest request) {
+        if (request == null) {
+            throw new QuizGenerationException("Regeneration request must not be null");
+        }
+        Set<ConstraintViolation<QuestionRegenerationRequest>> violations = validator.validate(request);
+        if (!violations.isEmpty()) {
+            String message = violations.stream()
+                    .map(ConstraintViolation::getMessage)
+                    .collect(Collectors.joining("; "));
+            throw new QuizGenerationException("Invalid regeneration request: " + message);
+        }
+        enforceMaterialSizeLimit(request.instructionalItemsOrEmpty());
+
+        long start = System.currentTimeMillis();
+        RegeneratedQuestion result = quizGenerator.regenerate(request);
+        long durationMs = System.currentTimeMillis() - start;
+
+        TokenUsage usage = result.usage();
+        log.info("Question regenerated: model={} promptVersion={} durationMs={} inputTokens={} outputTokens={}",
+                usage.model(), properties.getPromptVersion(), durationMs, usage.inputTokens(), usage.outputTokens());
+        log.debug("Regeneration analysis (internal, not returned to user): {}", result.analysis());
+
+        quizValidator.validate(result.question());
+        return result;
+    }
+
     private void validateRequest(QuizGenerationRequest request) {
         if (request == null) {
             throw new QuizGenerationException("Quiz generation request must not be null");
@@ -72,8 +102,8 @@ public class QuizGenerationService {
         }
     }
 
-    private void enforceMaterialSizeLimit(QuizGenerationRequest request) {
-        int totalChars = request.instructionalItemsOrEmpty().stream()
+    private void enforceMaterialSizeLimit(java.util.List<String> instructionalItems) {
+        int totalChars = instructionalItems.stream()
                 .filter(item -> item != null)
                 .mapToInt(String::length)
                 .sum();

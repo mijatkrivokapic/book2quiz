@@ -1,0 +1,65 @@
+{
+  "type": "object",
+  "properties": {
+    "analysis": {
+      "type": "string",
+      "description": "Analysis and rationale of how the new question satisfies the guidelines and constraints, as plain text."
+    },
+    "question": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "questionType": { "const": "MULTIPLE_RESPONSE" },
+            "text": { "type": "string" },
+            "options": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "text": { "type": "string" },
+                  "isCorrect": { "type": "boolean" },
+                  "feedback": { "type": "string" },
+                  "hints": { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["text", "isCorrect", "feedback", "hints"],
+                "additionalProperties": false
+              }
+            },
+            "hints": { "type": "array", "items": { "type": "string" } }
+          },
+          "required": ["questionType", "text", "options", "hints"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "questionType": { "const": "MULTIPLE_CHOICE" },
+            "text": { "type": "string" },
+            "distractors": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+            "correctOption": { "type": "string" },
+            "feedback": { "type": "string" },
+            "hints": { "type": "array", "items": { "type": "string" } }
+          },
+          "required": ["questionType", "text", "distractors", "correctOption", "feedback", "hints"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "questionType": { "const": "SHORT_ANSWER" },
+            "text": { "type": "string" },
+            "acceptableAnswers": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+            "feedback": { "type": "string" },
+            "hints": { "type": "array", "items": { "type": "string" } }
+          },
+          "required": ["questionType", "text", "acceptableAnswers", "feedback", "hints"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "required": ["analysis", "question"],
+  "additionalProperties": false
+}

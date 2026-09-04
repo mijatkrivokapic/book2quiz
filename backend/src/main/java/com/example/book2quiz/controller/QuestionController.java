@@ -2,6 +2,8 @@ package com.example.book2quiz.controller;
 
 import com.example.book2quiz.dto.question.QuestionGenerationStatusResponse;
 import com.example.book2quiz.dto.question.QuestionResponse;
+import com.example.book2quiz.dto.question.QuestionVersionDTO;
+import com.example.book2quiz.dto.question.RegenerateQuestionRequest;
 import com.example.book2quiz.dto.question.SaveQuestionRequest;
 import com.example.book2quiz.dto.question.UpdateQuestionStatusRequest;
 import com.example.book2quiz.service.QuestionService;
@@ -76,6 +78,49 @@ public class QuestionController {
                                        @PathVariable int ordinal,
                                        @PathVariable Integer id) {
         questionService.delete(bookId, ordinal, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/regenerate")
+    public ResponseEntity<Void> regenerate(@PathVariable Integer bookId,
+                                           @PathVariable int ordinal,
+                                           @PathVariable Integer id,
+                                           @RequestBody(required = false) RegenerateQuestionRequest request) {
+        String guideline = request == null ? null : request.guideline();
+        questionService.requestRegeneration(bookId, ordinal, id, guideline);
+        return ResponseEntity.accepted().build();
+    }
+
+    @GetMapping("/{id}/versions")
+    public ResponseEntity<List<QuestionVersionDTO>> versions(@PathVariable Integer bookId,
+                                                             @PathVariable int ordinal,
+                                                             @PathVariable Integer id) {
+        return ResponseEntity.ok(questionService.listVersions(bookId, ordinal, id));
+    }
+
+    @PutMapping("/{id}/versions/{versionId}/activate")
+    public ResponseEntity<QuestionResponse> activateVersion(@PathVariable Integer bookId,
+                                                            @PathVariable int ordinal,
+                                                            @PathVariable Integer id,
+                                                            @PathVariable Integer versionId) {
+        return ResponseEntity.ok(questionService.activateVersion(bookId, ordinal, id, versionId));
+    }
+
+    @PutMapping("/{id}/versions/{versionId}")
+    public ResponseEntity<QuestionVersionDTO> updateVersion(@PathVariable Integer bookId,
+                                                            @PathVariable int ordinal,
+                                                            @PathVariable Integer id,
+                                                            @PathVariable Integer versionId,
+                                                            @Valid @RequestBody SaveQuestionRequest request) {
+        return ResponseEntity.ok(questionService.updateVersion(bookId, ordinal, id, versionId, request.question()));
+    }
+
+    @DeleteMapping("/{id}/versions/{versionId}")
+    public ResponseEntity<Void> deleteVersion(@PathVariable Integer bookId,
+                                              @PathVariable int ordinal,
+                                              @PathVariable Integer id,
+                                              @PathVariable Integer versionId) {
+        questionService.deleteVersion(bookId, ordinal, id, versionId);
         return ResponseEntity.noContent().build();
     }
 }
