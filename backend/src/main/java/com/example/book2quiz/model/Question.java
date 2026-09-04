@@ -9,6 +9,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A quiz question attached to a chapter. The polymorphic payload (options/distractors/
@@ -42,9 +44,23 @@ public class Question {
     @Column(nullable = false)
     private QuestionOrigin origin = QuestionOrigin.MANUAL;
 
-    /** JSON of the {@code GeneratedQuestion} payload. */
+    /** JSON of the {@code GeneratedQuestion} payload (mirror of the active version). */
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    /** Id of the active {@link QuestionVersion}; its fields are mirrored above. */
+    @Column
+    private Integer activeVersionId;
+
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QuestionVersion> versions = new ArrayList<>();
+
+    // Status of an in-progress async regeneration of this question. Null until requested.
+    @Enumerated(EnumType.STRING)
+    private ProcessingStatus regenerationStatus;
+
+    @Column(columnDefinition = "TEXT")
+    private String regenerationError;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -52,4 +68,13 @@ public class Question {
 
     @UpdateTimestamp
     private Instant updatedAt;
+
+    /** Copies an active version's fields into this question's mirror. */
+    public void mirror(QuestionVersion version) {
+        this.activeVersionId = version.getId();
+        this.questionType = version.getQuestionType();
+        this.status = version.getStatus();
+        this.origin = version.getOrigin();
+        this.content = version.getContent();
+    }
 }
