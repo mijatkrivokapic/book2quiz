@@ -1,3 +1,5 @@
+import { ProcessingStatus } from './chapter.model';
+
 export type QuestionType = 'MULTIPLE_CHOICE' | 'MULTIPLE_RESPONSE' | 'SHORT_ANSWER';
 export type QuestionStatus = 'PENDING' | 'APPROVED';
 export type QuestionOrigin = 'GENERATED' | 'MANUAL';
@@ -28,6 +30,21 @@ export interface Question {
   id: number;
   status: QuestionStatus;
   origin: QuestionOrigin;
+  question: QuestionPayload;
+  activeVersionId: number | null;
+  versionCount: number;
+  regenerationStatus: ProcessingStatus | null;
+  regenerationError: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuestionVersion {
+  id: number;
+  active: boolean;
+  status: QuestionStatus;
+  origin: QuestionOrigin;
+  guideline: string | null;
   question: QuestionPayload;
   createdAt: string;
   updatedAt: string;

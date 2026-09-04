@@ -1,0 +1,17 @@
+.intro {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
+  max-width: 520px;
+  margin: 0 0 16px;
+}
+
+.full-width {
+  width: 100%;
+  min-width: 480px;
+}
+
+@media (max-width: 600px) {
+  .full-width {
+    min-width: unset;
+  }
+}

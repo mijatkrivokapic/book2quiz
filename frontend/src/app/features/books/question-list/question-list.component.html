@@ -67,6 +67,18 @@
               <mat-icon>undo</mat-icon>
             </button>
           }
+          @if (q.regenerationStatus === 'PROCESSING') {
+            <span class="regenerating"><mat-spinner diameter="16" /> Regenerating…</span>
+          } @else {
+            <button mat-icon-button matTooltip="Regenerate with guidelines" (click)="regenerate(q)">
+              <mat-icon>autorenew</mat-icon>
+            </button>
+          }
+          @if (q.versionCount > 1) {
+            <button mat-icon-button [matTooltip]="'Versions (' + q.versionCount + ')'" (click)="openVersions(q)">
+              <mat-icon>history</mat-icon>
+            </button>
+          }
           <button mat-icon-button matTooltip="Copy JSON" (click)="exportQuestion(q)">
             <mat-icon>content_copy</mat-icon>
           </button>
@@ -77,6 +89,10 @@
             <mat-icon>delete</mat-icon>
           </button>
         </div>
+
+        @if (q.regenerationStatus === 'FAILED' && q.regenerationError) {
+          <p class="regen-error"><mat-icon>error_outline</mat-icon> {{ q.regenerationError }}</p>
+        }
 
         <p class="question-text">{{ q.question.text }}</p>
 

@@ -13,6 +13,11 @@ import {
   QuestionEditorDialogComponent,
   QuestionEditorDialogData
 } from '../question-editor-dialog/question-editor-dialog.component';
+import { RegenerateQuestionDialogComponent } from '../regenerate-question-dialog/regenerate-question-dialog.component';
+import {
+  QuestionVersionsDialogComponent,
+  QuestionVersionsDialogData
+} from '../question-versions-dialog/question-versions-dialog.component';
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -41,6 +46,7 @@ export class QuestionListComponent implements OnInit, OnDestroy {
   );
 
   private pollHandle?: ReturnType<typeof setTimeout>;
+  private regenPollHandle?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
     this.load();
@@ -58,6 +64,71 @@ export class QuestionListComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     clearTimeout(this.pollHandle);
+    clearTimeout(this.regenPollHandle);
+  }
+
+  protected regenerate(question: Question): void {
+    this.dialog
+      .open(RegenerateQuestionDialogComponent, { width: '560px' })
+      .afterClosed()
+      .subscribe((guideline: string | null) => {
+        if (guideline === null) {
+          return;
+        }
+        this.questionService.regenerate(this.bookId(), this.ordinal(), question.id, guideline).subscribe({
+          next: () => {
+            this.notification.success('Regeneration started.');
+            // Optimistically mark this card as processing, then poll.
+            this.questions.update(list =>
+              list.map(q => (q.id === question.id ? { ...q, regenerationStatus: 'PROCESSING' } : q))
+            );
+            this.scheduleRegenPoll();
+          },
+          error: err => this.notification.error(extractErrorMessage(err, 'Failed to start regeneration.'))
+        });
+      });
+  }
+
+  protected openVersions(question: Question): void {
+    const data: QuestionVersionsDialogData = {
+      bookId: this.bookId(),
+      ordinal: this.ordinal(),
+      questionId: question.id
+    };
+    this.dialog
+      .open(QuestionVersionsDialogComponent, { width: '760px', data })
+      .afterClosed()
+      .subscribe((changed: boolean) => {
+        if (changed) {
+          this.load();
+        }
+      });
+  }
+
+  private anyRegenerating(): boolean {
+    return this.questions().some(q => q.regenerationStatus === 'PROCESSING');
+  }
+
+  private scheduleRegenPoll(): void {
+    clearTimeout(this.regenPollHandle);
+    if (this.anyRegenerating()) {
+      this.regenPollHandle = setTimeout(() => this.pollRegen(), POLL_INTERVAL_MS);
+    }
+  }
+
+  private pollRegen(): void {
+    this.questionService.list(this.bookId(), this.ordinal()).subscribe({
+      next: questions => {
+        const wasRegenerating = this.anyRegenerating();
+        this.questions.set(questions);
+        if (this.anyRegenerating()) {
+          this.scheduleRegenPoll();
+        } else if (wasRegenerating) {
+          this.notification.success('Question regenerated (new version pending review).');
+        }
+      },
+      error: () => this.scheduleRegenPoll()
+    });
   }
 
   protected generate(): void {
@@ -205,6 +276,8 @@ export class QuestionListComponent implements OnInit, OnDestroy {
       next: questions => {
         this.questions.set(questions);
         this.loading.set(false);
+        // Resume the regeneration indicator if a run is still in progress.
+        this.scheduleRegenPoll();
       },
       error: err => {
         this.loading.set(false);

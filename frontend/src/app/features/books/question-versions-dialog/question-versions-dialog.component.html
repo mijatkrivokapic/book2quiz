@@ -1,0 +1,57 @@
+<h2 mat-dialog-title>Question versions</h2>
+
+<mat-dialog-content class="versions-content">
+  @if (loading()) {
+    <div class="state-row"><mat-spinner diameter="32" /></div>
+  } @else if (versions().length === 0) {
+    <p class="empty">No versions.</p>
+  } @else {
+    <ul class="versions">
+      @for (v of versions(); track v.id) {
+        <li class="version" [class.active]="v.active">
+          <div class="version-top">
+            @if (v.active) {
+              <span class="active-badge"><mat-icon>check_circle</mat-icon> Active</span>
+            }
+            <span class="type-chip">{{ v.question.questionType }}</span>
+            <span class="origin-chip">{{ v.origin }}</span>
+            <span class="status-chip" [class]="'status-' + v.status.toLowerCase()">{{ v.status }}</span>
+            <span class="spacer"></span>
+
+            @if (!v.active) {
+              <button
+                mat-stroked-button
+                matTooltip="Make this the active version"
+                [disabled]="busyId() === v.id"
+                (click)="activate(v)"
+              >
+                <mat-icon>done</mat-icon>
+                Activate
+              </button>
+            }
+            <button mat-icon-button matTooltip="Edit version" (click)="edit(v)">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              matTooltip="Delete version"
+              [disabled]="v.active || versions().length <= 1 || busyId() === v.id"
+              (click)="remove(v)"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+
+          @if (v.guideline) {
+            <p class="guideline"><mat-icon>tips_and_updates</mat-icon> {{ v.guideline }}</p>
+          }
+          <p class="version-text">{{ v.question.text }}</p>
+        </li>
+      }
+    </ul>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="primary" (click)="close()">Done</button>
+</mat-dialog-actions>

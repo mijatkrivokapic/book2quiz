@@ -1,0 +1,100 @@
+.versions-content {
+  min-width: 560px;
+  max-width: 720px;
+}
+
+.state-row {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.empty {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.versions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.version {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.version.active {
+  border-color: #2e7d32;
+  background: #f4fbf4;
+}
+
+.version-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.active-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #2e7d32;
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.active-badge mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.type-chip,
+.origin-chip,
+.status-chip {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.status-pending {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.status-approved {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.guideline {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 10px 0 6px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.guideline mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.version-text {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

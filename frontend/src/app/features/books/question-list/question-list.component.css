@@ -17,6 +17,29 @@
   gap: 8px;
 }
 
+.regenerating {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #1565c0;
+}
+
+.regen-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px 0 0;
+  color: #c62828;
+  font-size: 0.85rem;
+}
+
+.regen-error mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
 .btn-spinner {
   display: inline-block;
   margin-right: 8px;

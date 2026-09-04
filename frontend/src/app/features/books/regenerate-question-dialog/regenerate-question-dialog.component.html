@@ -1,0 +1,27 @@
+<h2 mat-dialog-title>Regenerate question</h2>
+
+<mat-dialog-content>
+  <p class="intro">
+    The model will produce a new version of this question using the chapter material,
+    characteristics and constraints, plus your guidelines below. The result is saved as a
+    new version (you can compare and switch versions afterwards).
+  </p>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Additional guidelines (optional)</mat-label>
+    <textarea
+      matInput
+      rows="5"
+      [value]="guideline()"
+      (input)="onInput($event)"
+      placeholder="e.g. Make it harder; use a different scenario; shorten the code; change to short answer…"
+    ></textarea>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" (click)="submit()">
+    <mat-icon>autorenew</mat-icon>
+    Regenerate
+  </button>
+</mat-dialog-actions>
