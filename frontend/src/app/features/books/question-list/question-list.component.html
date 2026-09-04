@@ -114,10 +114,12 @@
             @for (o of q.question.options; track $index) {
               <li [class.is-correct]="o.isCorrect">
                 <mat-icon>{{ o.isCorrect ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
-                <span class="markdown-body" [innerHTML]="renderInline(o.text)"></span>
-                @if (o.feedback) {
-                  <span class="option-feedback">— <span class="markdown-body" [innerHTML]="renderInline(o.feedback)"></span></span>
-                }
+                <div class="option-body">
+                  <span class="markdown-body" [innerHTML]="renderInline(o.text)"></span>
+                  @if (o.feedback) {
+                    <span class="option-feedback markdown-body" [innerHTML]="renderInline(o.feedback)"></span>
+                  }
+                </div>
               </li>
             }
           </ul>

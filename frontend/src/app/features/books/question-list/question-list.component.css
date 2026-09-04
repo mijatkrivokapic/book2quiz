@@ -137,12 +137,11 @@
   margin-bottom: 0;
 }
 
-/* Inline Markdown spans (options, answers, hints, correct option, feedback snippets)
-   should inherit the surrounding text color/size; only inline code/emphasis styling
-   comes from .markdown-body. */
+/* Inline Markdown spans (options, answers, hints, correct option) should inherit the
+   surrounding text color/size; only inline code/emphasis styling comes from .markdown-body.
+   The option feedback is excluded so it keeps its own muted styling below. */
 .correct .markdown-body,
-.options li .markdown-body,
-.option-feedback .markdown-body,
+.options li .markdown-body:not(.option-feedback),
 .hints li .markdown-body {
   color: inherit;
   font-size: inherit;
@@ -178,6 +177,18 @@
   color: rgba(0, 0, 0, 0.75);
 }
 
+/* MRQ options: keep the checkbox top-aligned and stack the option text + feedback. */
+.options li:has(.option-body) {
+  align-items: flex-start;
+}
+
+.option-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .options li mat-icon {
   font-size: 18px;
   width: 18px;
@@ -196,6 +207,8 @@
 .option-feedback {
   color: rgba(0, 0, 0, 0.5);
   font-style: italic;
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 .answers-label,
