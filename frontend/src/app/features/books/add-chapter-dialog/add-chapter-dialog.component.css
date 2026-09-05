@@ -6,6 +6,13 @@
   padding-top: 8px;
 }
 
+/* Keep every row at its natural height: when the dialog exceeds its max-height,
+   the content should scroll rather than compress rows (which crushed the source
+   toggle and let the textarea overlap it). */
+.dialog-content > * {
+  flex-shrink: 0;
+}
+
 .full-width {
   width: 100%;
 }
