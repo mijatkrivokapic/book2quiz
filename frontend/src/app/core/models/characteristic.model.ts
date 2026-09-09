@@ -15,4 +15,6 @@ export interface Characteristic {
 export interface LearningObjective {
   id: number;
   description: string;
+  status: CharacteristicStatus;
+  origin: CharacteristicOrigin;
 }

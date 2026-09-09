@@ -177,7 +177,19 @@
                     </button>
                   } @else {
                     <span class="objective-description">{{ lo.description }}</span>
+                    @if (lo.status) {
+                      <span class="status-chip" [class]="'status-' + lo.status.toLowerCase()">{{ lo.status }}</span>
+                    }
                     <span class="spacer"></span>
+                    @if (lo.status === 'PENDING') {
+                      <button mat-icon-button matTooltip="Approve" [disabled]="busyObjectiveId() === lo.id" (click)="setObjectiveStatus(lo, 'APPROVED')">
+                        <mat-icon>check_circle</mat-icon>
+                      </button>
+                    } @else {
+                      <button mat-icon-button matTooltip="Revert to pending" [disabled]="busyObjectiveId() === lo.id" (click)="setObjectiveStatus(lo, 'PENDING')">
+                        <mat-icon>undo</mat-icon>
+                      </button>
+                    }
                     <button mat-icon-button matTooltip="Edit objective" (click)="startEditObjective(lo)">
                       <mat-icon>edit</mat-icon>
                     </button>

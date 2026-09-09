@@ -212,6 +212,9 @@ export class ChapterDetailComponent implements OnInit, OnDestroy {
         } else if (s.status === 'DONE') {
           this.generatingCharacteristics.set(false);
           this.notification.success('Characteristics generated (pending review).');
+          // Reload the learning objectives (their nested structural lists reload on init)
+          // and the surface list.
+          this.loadObjectives();
           this.characteristicLists().forEach(list => list.reload());
         } else if (s.status === 'FAILED') {
           this.generatingCharacteristics.set(false);
@@ -291,6 +294,20 @@ export class ChapterDetailComponent implements OnInit, OnDestroy {
       error: err => {
         this.busyObjectiveId.set(null);
         this.notification.error(extractErrorMessage(err, 'Failed to update the learning objective.'));
+      }
+    });
+  }
+
+  protected setObjectiveStatus(objective: LearningObjective, status: CharacteristicStatus): void {
+    this.busyObjectiveId.set(objective.id);
+    this.learningObjectiveService.updateStatus(this.bookId, this.ordinal, objective.id, status).subscribe({
+      next: updated => {
+        this.learningObjectives.update(list => list.map(o => (o.id === updated.id ? updated : o)));
+        this.busyObjectiveId.set(null);
+      },
+      error: err => {
+        this.busyObjectiveId.set(null);
+        this.notification.error(extractErrorMessage(err, 'Failed to update the status.'));
       }
     });
   }

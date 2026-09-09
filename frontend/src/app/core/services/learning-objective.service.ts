@@ -32,6 +32,15 @@ export class LearningObjectiveService {
     return this.http.put<LearningObjective>(`${this.base(bookId, ordinal)}/${loId}`, { description });
   }
 
+  updateStatus(
+    bookId: number,
+    ordinal: number,
+    loId: number,
+    status: CharacteristicStatus
+  ): Observable<LearningObjective> {
+    return this.http.put<LearningObjective>(`${this.base(bookId, ordinal)}/${loId}/status`, { status });
+  }
+
   delete(bookId: number, ordinal: number, loId: number): Observable<void> {
     return this.http.delete<void>(`${this.base(bookId, ordinal)}/${loId}`);
   }
