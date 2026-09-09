@@ -117,6 +117,81 @@
   font-size: 0.875rem;
 }
 
+/* Learning objectives */
+.objectives {
+  margin-bottom: 28px;
+}
+
+.objectives-title {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.state-row {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+}
+
+.objectives-empty {
+  margin: 0 0 12px;
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 0.875rem;
+}
+
+.objective-card {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  background: rgba(0, 0, 0, 0.015);
+}
+
+.objective-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.objective-description {
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.objective-input {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.23);
+  border-radius: 6px;
+  resize: vertical;
+}
+
+.objective-input:focus {
+  outline: none;
+  border-color: #3f51b5;
+}
+
+.add-objective {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.add-objective .objective-input {
+  flex: 1;
+}
+
 .editor-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;

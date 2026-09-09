@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal, viewChildren } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Observable } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -12,18 +13,28 @@ import { MatDialog } from '@angular/material/dialog';
 import { BookService } from '../../../core/services/book.service';
 import { ChapterService } from '../../../core/services/chapter.service';
 import { CharacteristicService } from '../../../core/services/characteristic.service';
+import { LearningObjectiveService } from '../../../core/services/learning-objective.service';
 import { ConstraintService } from '../../../core/services/constraint.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { extractErrorMessage } from '../../../core/utils/http-error.util';
 import { renderMarkdown } from '../../../core/utils/markdown.util';
 import { Book } from '../../../core/models/book.model';
 import { Chapter } from '../../../core/models/chapter.model';
-import { CharacteristicStatus } from '../../../core/models/characteristic.model';
+import { Characteristic, CharacteristicStatus, LearningObjective } from '../../../core/models/characteristic.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { EditableItemListComponent } from '../editable-item-list/editable-item-list.component';
 import { QuestionListComponent } from '../question-list/question-list.component';
 
 type DetailView = 'content' | 'characteristics' | 'questions';
+
+/** CRUD closures for one learning objective's structural characteristics list. */
+interface StructuralAdapters {
+  load: () => Observable<Characteristic[]>;
+  create: (content: string) => Observable<Characteristic>;
+  update: (id: number, content: string) => Observable<Characteristic>;
+  remove: (id: number) => Observable<void>;
+  updateStatus: (id: number, status: CharacteristicStatus) => Observable<Characteristic>;
+}
 
 const CHAR_POLL_INTERVAL_MS = 3000;
 
@@ -54,6 +65,7 @@ export class ChapterDetailComponent implements OnInit, OnDestroy {
   private readonly bookService = inject(BookService);
   private readonly chapterService = inject(ChapterService);
   private readonly characteristicService = inject(CharacteristicService);
+  private readonly learningObjectiveService = inject(LearningObjectiveService);
   private readonly constraintService = inject(ConstraintService);
   private readonly notification = inject(NotificationService);
 
@@ -71,29 +83,49 @@ export class ChapterDetailComponent implements OnInit, OnDestroy {
   protected readonly saving = signal(false);
   protected readonly view = signal<DetailView>('content');
 
-  // CRUD adapters handed to the generic editable-item-list component.
-  protected readonly loadStructural = () =>
-    this.characteristicService.list(this.bookId, this.ordinal, 'structural');
-  protected readonly createStructural = (content: string) =>
-    this.characteristicService.create(this.bookId, this.ordinal, 'structural', content);
-  protected readonly updateStructural = (id: number, content: string) =>
-    this.characteristicService.update(this.bookId, this.ordinal, 'structural', id, content);
-  protected readonly removeStructural = (id: number) =>
-    this.characteristicService.delete(this.bookId, this.ordinal, 'structural', id);
-
+  // Surface characteristics: CRUD adapters handed to the generic editable-item-list.
   protected readonly loadSurface = () =>
-    this.characteristicService.list(this.bookId, this.ordinal, 'surface');
+    this.characteristicService.list(this.bookId, this.ordinal);
   protected readonly createSurface = (content: string) =>
-    this.characteristicService.create(this.bookId, this.ordinal, 'surface', content);
+    this.characteristicService.create(this.bookId, this.ordinal, content);
   protected readonly updateSurface = (id: number, content: string) =>
-    this.characteristicService.update(this.bookId, this.ordinal, 'surface', id, content);
+    this.characteristicService.update(this.bookId, this.ordinal, id, content);
   protected readonly removeSurface = (id: number) =>
-    this.characteristicService.delete(this.bookId, this.ordinal, 'surface', id);
-
-  protected readonly updateStructuralStatus = (id: number, status: CharacteristicStatus) =>
-    this.characteristicService.updateStatus(this.bookId, this.ordinal, 'structural', id, status);
+    this.characteristicService.delete(this.bookId, this.ordinal, id);
   protected readonly updateSurfaceStatus = (id: number, status: CharacteristicStatus) =>
-    this.characteristicService.updateStatus(this.bookId, this.ordinal, 'surface', id, status);
+    this.characteristicService.updateStatus(this.bookId, this.ordinal, id, status);
+
+  // Learning objectives, each owning a nested structural-characteristics list.
+  protected readonly learningObjectives = signal<LearningObjective[]>([]);
+  protected readonly loadingObjectives = signal(true);
+  protected readonly newObjective = signal('');
+  protected readonly addingObjective = signal(false);
+  protected readonly editingObjectiveId = signal<number | null>(null);
+  protected readonly editObjectiveDescription = signal('');
+  protected readonly busyObjectiveId = signal<number | null>(null);
+
+  // Stable per-objective structural adapters, so the child lists keep the same function
+  // identities across change-detection cycles.
+  private readonly structuralAdaptersCache = new Map<number, StructuralAdapters>();
+
+  protected structuralAdapters(loId: number): StructuralAdapters {
+    let adapters = this.structuralAdaptersCache.get(loId);
+    if (!adapters) {
+      adapters = {
+        load: () => this.learningObjectiveService.listStructural(this.bookId, this.ordinal, loId),
+        create: (content: string) =>
+          this.learningObjectiveService.createStructural(this.bookId, this.ordinal, loId, content),
+        update: (id: number, content: string) =>
+          this.learningObjectiveService.updateStructural(this.bookId, this.ordinal, loId, id, content),
+        remove: (id: number) =>
+          this.learningObjectiveService.deleteStructural(this.bookId, this.ordinal, loId, id),
+        updateStatus: (id: number, status: CharacteristicStatus) =>
+          this.learningObjectiveService.updateStructuralStatus(this.bookId, this.ordinal, loId, id, status)
+      };
+      this.structuralAdaptersCache.set(loId, adapters);
+    }
+    return adapters;
+  }
 
   // Async characteristic generation.
   protected readonly generatingCharacteristics = signal(false);
@@ -134,6 +166,8 @@ export class ChapterDetailComponent implements OnInit, OnDestroy {
         this.notification.error(extractErrorMessage(err, 'Failed to load the chapter.'));
       }
     });
+
+    this.loadObjectives();
 
     // Resume the characteristic-generation indicator if a run is still in progress.
     this.characteristicService.getGenerationStatus(this.bookId, this.ordinal).subscribe({
@@ -187,6 +221,105 @@ export class ChapterDetailComponent implements OnInit, OnDestroy {
         }
       },
       error: () => this.scheduleCharPoll()
+    });
+  }
+
+  // ---- Learning objectives -------------------------------------------------------------
+
+  private loadObjectives(): void {
+    this.loadingObjectives.set(true);
+    this.learningObjectiveService.list(this.bookId, this.ordinal).subscribe({
+      next: objectives => {
+        this.learningObjectives.set(objectives);
+        this.loadingObjectives.set(false);
+      },
+      error: err => {
+        this.loadingObjectives.set(false);
+        this.notification.error(extractErrorMessage(err, 'Failed to load learning objectives.'));
+      }
+    });
+  }
+
+  protected onNewObjectiveInput(event: Event): void {
+    this.newObjective.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  protected onEditObjectiveInput(event: Event): void {
+    this.editObjectiveDescription.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  protected addObjective(): void {
+    const description = this.newObjective().trim();
+    if (!description) {
+      return;
+    }
+    this.addingObjective.set(true);
+    this.learningObjectiveService.create(this.bookId, this.ordinal, description).subscribe({
+      next: created => {
+        this.learningObjectives.update(list => [...list, created]);
+        this.newObjective.set('');
+        this.addingObjective.set(false);
+      },
+      error: err => {
+        this.addingObjective.set(false);
+        this.notification.error(extractErrorMessage(err, 'Failed to add the learning objective.'));
+      }
+    });
+  }
+
+  protected startEditObjective(objective: LearningObjective): void {
+    this.editingObjectiveId.set(objective.id);
+    this.editObjectiveDescription.set(objective.description);
+  }
+
+  protected cancelEditObjective(): void {
+    this.editingObjectiveId.set(null);
+  }
+
+  protected saveObjective(objective: LearningObjective): void {
+    const description = this.editObjectiveDescription().trim();
+    if (!description) {
+      return;
+    }
+    this.busyObjectiveId.set(objective.id);
+    this.learningObjectiveService.update(this.bookId, this.ordinal, objective.id, description).subscribe({
+      next: updated => {
+        this.learningObjectives.update(list => list.map(o => (o.id === updated.id ? updated : o)));
+        this.busyObjectiveId.set(null);
+        this.editingObjectiveId.set(null);
+      },
+      error: err => {
+        this.busyObjectiveId.set(null);
+        this.notification.error(extractErrorMessage(err, 'Failed to update the learning objective.'));
+      }
+    });
+  }
+
+  protected removeObjective(objective: LearningObjective): void {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: 'Delete learning objective',
+        message: 'Delete this learning objective and all its structural characteristics? This cannot be undone.',
+        confirmLabel: 'Delete'
+      }
+    });
+    ref.afterClosed().subscribe(confirmed => {
+      if (!confirmed) {
+        return;
+      }
+      this.busyObjectiveId.set(objective.id);
+      this.learningObjectiveService.delete(this.bookId, this.ordinal, objective.id).subscribe({
+        next: () => {
+          this.learningObjectives.update(list => list.filter(o => o.id !== objective.id));
+          this.structuralAdaptersCache.delete(objective.id);
+          this.busyObjectiveId.set(null);
+        },
+        error: err => {
+          this.busyObjectiveId.set(null);
+          this.notification.error(extractErrorMessage(err, 'Failed to delete the learning objective.'));
+        }
+      });
     });
   }
 

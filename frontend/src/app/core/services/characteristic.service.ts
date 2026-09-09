@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Characteristic, CharacteristicStatus, CharacteristicType } from '../models/characteristic.model';
+import { Characteristic, CharacteristicStatus } from '../models/characteristic.model';
 import { ProcessingStatus } from '../models/chapter.model';
 
 export interface CharacteristicGenerationStatus {
@@ -9,6 +9,11 @@ export interface CharacteristicGenerationStatus {
   error: string | null;
 }
 
+/**
+ * Surface characteristics (chapter-scoped) and the shared characteristic-generation
+ * trigger/status. Structural characteristics now live under learning objectives — see
+ * {@link LearningObjectiveService}.
+ */
 @Injectable({ providedIn: 'root' })
 export class CharacteristicService {
   private readonly http = inject(HttpClient);
@@ -17,43 +22,36 @@ export class CharacteristicService {
     return `/api/books/${bookId}/chapters/${ordinal}/characteristics`;
   }
 
-  private base(bookId: number, ordinal: number, type: CharacteristicType): string {
-    return `${this.root(bookId, ordinal)}/${type}`;
+  private surface(bookId: number, ordinal: number): string {
+    return `${this.root(bookId, ordinal)}/surface`;
   }
 
-  list(bookId: number, ordinal: number, type: CharacteristicType): Observable<Characteristic[]> {
-    return this.http.get<Characteristic[]>(this.base(bookId, ordinal, type));
+  list(bookId: number, ordinal: number): Observable<Characteristic[]> {
+    return this.http.get<Characteristic[]>(this.surface(bookId, ordinal));
   }
 
-  create(bookId: number, ordinal: number, type: CharacteristicType, content: string): Observable<Characteristic> {
-    return this.http.post<Characteristic>(this.base(bookId, ordinal, type), { content });
+  create(bookId: number, ordinal: number, content: string): Observable<Characteristic> {
+    return this.http.post<Characteristic>(this.surface(bookId, ordinal), { content });
   }
 
-  update(
-    bookId: number,
-    ordinal: number,
-    type: CharacteristicType,
-    id: number,
-    content: string
-  ): Observable<Characteristic> {
-    return this.http.put<Characteristic>(`${this.base(bookId, ordinal, type)}/${id}`, { content });
+  update(bookId: number, ordinal: number, id: number, content: string): Observable<Characteristic> {
+    return this.http.put<Characteristic>(`${this.surface(bookId, ordinal)}/${id}`, { content });
   }
 
   updateStatus(
     bookId: number,
     ordinal: number,
-    type: CharacteristicType,
     id: number,
     status: CharacteristicStatus
   ): Observable<Characteristic> {
-    return this.http.put<Characteristic>(`${this.base(bookId, ordinal, type)}/${id}/status`, { status });
+    return this.http.put<Characteristic>(`${this.surface(bookId, ordinal)}/${id}/status`, { status });
   }
 
-  delete(bookId: number, ordinal: number, type: CharacteristicType, id: number): Observable<void> {
-    return this.http.delete<void>(`${this.base(bookId, ordinal, type)}/${id}`);
+  delete(bookId: number, ordinal: number, id: number): Observable<void> {
+    return this.http.delete<void>(`${this.surface(bookId, ordinal)}/${id}`);
   }
 
-  /** Kicks off async generation of both structural and surface characteristics (202). */
+  /** Kicks off async generation of characteristics (202). */
   generate(bookId: number, ordinal: number): Observable<void> {
     return this.http.post<void>(`${this.root(bookId, ordinal)}/generate`, null);
   }

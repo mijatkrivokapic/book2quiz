@@ -152,15 +152,76 @@
           }
         </div>
 
-        <app-editable-item-list
-          label="Structural characteristics"
-          [load]="loadStructural"
-          [create]="createStructural"
-          [update]="updateStructural"
-          [remove]="removeStructural"
-          [approvable]="true"
-          [updateStatus]="updateStructuralStatus"
-        />
+        <section class="objectives">
+          <h3 class="objectives-title">Learning objectives</h3>
+
+          @if (loadingObjectives()) {
+            <div class="state-row"><mat-spinner diameter="24" /></div>
+          } @else {
+            @for (lo of learningObjectives(); track lo.id) {
+              @let adapters = structuralAdapters(lo.id);
+              <div class="objective-card">
+                <div class="objective-top">
+                  @if (editingObjectiveId() === lo.id) {
+                    <textarea
+                      class="objective-input"
+                      rows="2"
+                      [value]="editObjectiveDescription()"
+                      (input)="onEditObjectiveInput($event)"
+                    ></textarea>
+                    <button mat-icon-button matTooltip="Save" [disabled]="busyObjectiveId() === lo.id" (click)="saveObjective(lo)">
+                      <mat-icon>check</mat-icon>
+                    </button>
+                    <button mat-icon-button matTooltip="Cancel" [disabled]="busyObjectiveId() === lo.id" (click)="cancelEditObjective()">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  } @else {
+                    <span class="objective-description">{{ lo.description }}</span>
+                    <span class="spacer"></span>
+                    <button mat-icon-button matTooltip="Edit objective" (click)="startEditObjective(lo)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button matTooltip="Delete objective" [disabled]="busyObjectiveId() === lo.id" (click)="removeObjective(lo)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  }
+                </div>
+
+                <app-editable-item-list
+                  label="Structural characteristics"
+                  [load]="adapters.load"
+                  [create]="adapters.create"
+                  [update]="adapters.update"
+                  [remove]="adapters.remove"
+                  [approvable]="true"
+                  [updateStatus]="adapters.updateStatus"
+                />
+              </div>
+            } @empty {
+              <p class="objectives-empty">No learning objectives yet. Add one below.</p>
+            }
+
+            <div class="add-objective">
+              <textarea
+                class="objective-input"
+                rows="2"
+                placeholder="New learning objective description"
+                [value]="newObjective()"
+                (input)="onNewObjectiveInput($event)"
+              ></textarea>
+              <button
+                mat-stroked-button
+                color="primary"
+                [disabled]="addingObjective() || !newObjective().trim()"
+                (click)="addObjective()"
+              >
+                <mat-icon>add</mat-icon>
+                Add objective
+              </button>
+            </div>
+          }
+        </section>
+
         <app-editable-item-list
           label="Surface characteristics"
           [load]="loadSurface"
