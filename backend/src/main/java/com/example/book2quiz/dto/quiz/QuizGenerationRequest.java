@@ -14,7 +14,7 @@ public record QuizGenerationRequest(
 
         List<String> localConstraints,
 
-        List<String> structuralCharacteristics,
+        List<LearningObjectiveInput> learningObjectives,
 
         List<String> surfaceCharacteristics
 ) {
@@ -27,8 +27,8 @@ public record QuizGenerationRequest(
         return localConstraints == null ? List.of() : localConstraints;
     }
 
-    public List<String> structuralCharacteristicsOrEmpty() {
-        return structuralCharacteristics == null ? List.of() : structuralCharacteristics;
+    public List<LearningObjectiveInput> learningObjectivesOrEmpty() {
+        return learningObjectives == null ? List.of() : learningObjectives;
     }
 
     public List<String> surfaceCharacteristicsOrEmpty() {

@@ -38,8 +38,8 @@ public final class XmlSection {
         return "<" + tag + ">\n" + sb + "</" + tag + ">";
     }
 
-    private static String sanitize(String content) {
-        // Neutralize any closing-tag sequence so item content can't escape its element.
+    /** Neutralizes any closing-tag sequence so item content can't escape its element. */
+    static String sanitize(String content) {
         return content.replace("</", "<\\/");
     }
 }

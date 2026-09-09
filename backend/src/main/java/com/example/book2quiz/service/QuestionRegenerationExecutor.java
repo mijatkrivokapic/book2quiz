@@ -1,6 +1,7 @@
 package com.example.book2quiz.service;
 
 import com.example.book2quiz.dto.quiz.GeneratedQuestion;
+import com.example.book2quiz.dto.quiz.LearningObjectiveInput;
 import com.example.book2quiz.dto.quiz.QuestionRegenerationRequest;
 import com.example.book2quiz.dto.quiz.RegeneratedQuestion;
 import com.example.book2quiz.model.Chapter;
@@ -11,6 +12,7 @@ import com.example.book2quiz.model.QuestionStatus;
 import com.example.book2quiz.model.QuestionVersion;
 import com.example.book2quiz.repository.ChapterRepository;
 import com.example.book2quiz.repository.ConstraintRepository;
+import com.example.book2quiz.repository.LearningObjectiveRepository;
 import com.example.book2quiz.repository.QuestionRepository;
 import com.example.book2quiz.repository.QuestionVersionRepository;
 import com.example.book2quiz.repository.StructuralCharacteristicRepository;
@@ -40,6 +42,7 @@ public class QuestionRegenerationExecutor {
     private final ChapterRepository chapterRepository;
     private final QuestionRepository questionRepository;
     private final QuestionVersionRepository versionRepository;
+    private final LearningObjectiveRepository learningObjectiveRepository;
     private final StructuralCharacteristicRepository structuralRepository;
     private final SurfaceCharacteristicRepository surfaceRepository;
     private final ConstraintRepository constraintRepository;
@@ -50,6 +53,7 @@ public class QuestionRegenerationExecutor {
     public QuestionRegenerationExecutor(ChapterRepository chapterRepository,
                                         QuestionRepository questionRepository,
                                         QuestionVersionRepository versionRepository,
+                                        LearningObjectiveRepository learningObjectiveRepository,
                                         StructuralCharacteristicRepository structuralRepository,
                                         SurfaceCharacteristicRepository surfaceRepository,
                                         ConstraintRepository constraintRepository,
@@ -59,6 +63,7 @@ public class QuestionRegenerationExecutor {
         this.chapterRepository = chapterRepository;
         this.questionRepository = questionRepository;
         this.versionRepository = versionRepository;
+        this.learningObjectiveRepository = learningObjectiveRepository;
         this.structuralRepository = structuralRepository;
         this.surfaceRepository = surfaceRepository;
         this.constraintRepository = constraintRepository;
@@ -84,8 +89,7 @@ public class QuestionRegenerationExecutor {
         try {
             String material = new String(
                     fileStorageService.downloadFile(chapter.getMarkdownObjectKey()), StandardCharsets.UTF_8);
-            List<String> structural = structuralRepository.findByChapterIdOrderByIdAsc(chapterId).stream()
-                    .map(c -> c.getContent()).toList();
+            List<LearningObjectiveInput> learningObjectives = loadLearningObjectives(chapterId);
             List<String> surface = surfaceRepository.findByChapterIdOrderByIdAsc(chapterId).stream()
                     .map(c -> c.getContent()).toList();
             List<String> constraints = constraintRepository.findByChapterIdOrderByIdAsc(chapterId).stream()
@@ -99,7 +103,7 @@ public class QuestionRegenerationExecutor {
                     bookId, ordinal, questionId, guideline != null && !guideline.isBlank());
 
             QuestionRegenerationRequest request = new QuestionRegenerationRequest(
-                    List.of(material), structural, surface, constraints,
+                    List.of(material), learningObjectives, surface, constraints,
                     question.getContent(), otherQuestions, guideline);
 
             RegeneratedQuestion result = quizGenerationService.regenerate(request);
@@ -114,6 +118,20 @@ public class QuestionRegenerationExecutor {
                 questionRepository.save(q);
             });
         }
+    }
+
+    /**
+     * Loads the chapter's learning objectives (ordered), each paired with its ordered
+     * structural characteristics, for sending into the prompt.
+     */
+    private List<LearningObjectiveInput> loadLearningObjectives(int chapterId) {
+        return learningObjectiveRepository.findByChapterIdOrderByIdAsc(chapterId).stream()
+                .map(lo -> new LearningObjectiveInput(
+                        lo.getDescription(),
+                        structuralRepository.findByLearningObjectiveIdOrderByIdAsc(lo.getId()).stream()
+                                .map(c -> c.getContent())
+                                .toList()))
+                .toList();
     }
 
     private void saveNewActiveVersion(int questionId, RegeneratedQuestion result, String guideline) {

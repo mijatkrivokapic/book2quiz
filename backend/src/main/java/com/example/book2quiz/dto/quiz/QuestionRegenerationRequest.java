@@ -13,7 +13,7 @@ public record QuestionRegenerationRequest(
         @NotEmpty(message = "instructionalItems must not be empty")
         List<String> instructionalItems,
 
-        List<String> structuralCharacteristics,
+        List<LearningObjectiveInput> learningObjectives,
 
         List<String> surfaceCharacteristics,
 
@@ -32,8 +32,8 @@ public record QuestionRegenerationRequest(
         return instructionalItems == null ? List.of() : instructionalItems;
     }
 
-    public List<String> structuralCharacteristicsOrEmpty() {
-        return structuralCharacteristics == null ? List.of() : structuralCharacteristics;
+    public List<LearningObjectiveInput> learningObjectivesOrEmpty() {
+        return learningObjectives == null ? List.of() : learningObjectives;
     }
 
     public List<String> surfaceCharacteristicsOrEmpty() {

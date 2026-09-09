@@ -4,10 +4,26 @@
     "analysis": {
       "type": "string"
     },
-    "structuralCharacteristics": {
+    "learningObjectives": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "structuralCharacteristics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "description",
+          "structuralCharacteristics"
+        ],
+        "additionalProperties": false
       }
     },
     "surfaceCharacteristics": {
@@ -19,7 +35,7 @@
   },
   "required": [
     "analysis",
-    "structuralCharacteristics",
+    "learningObjectives",
     "surfaceCharacteristics"
   ],
   "additionalProperties": false

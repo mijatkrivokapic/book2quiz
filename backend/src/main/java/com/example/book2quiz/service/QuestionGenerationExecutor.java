@@ -2,6 +2,7 @@ package com.example.book2quiz.service;
 
 import com.example.book2quiz.dto.quiz.GeneratedQuestion;
 import com.example.book2quiz.dto.quiz.GeneratedQuiz;
+import com.example.book2quiz.dto.quiz.LearningObjectiveInput;
 import com.example.book2quiz.dto.quiz.QuizGenerationRequest;
 import com.example.book2quiz.model.Chapter;
 import com.example.book2quiz.model.ProcessingStatus;
@@ -10,6 +11,7 @@ import com.example.book2quiz.model.QuestionOrigin;
 import com.example.book2quiz.model.QuestionStatus;
 import com.example.book2quiz.repository.ChapterRepository;
 import com.example.book2quiz.repository.ConstraintRepository;
+import com.example.book2quiz.repository.LearningObjectiveRepository;
 import com.example.book2quiz.repository.QuestionRepository;
 import com.example.book2quiz.repository.StructuralCharacteristicRepository;
 import com.example.book2quiz.repository.SurfaceCharacteristicRepository;
@@ -37,6 +39,7 @@ public class QuestionGenerationExecutor {
 
     private final ChapterRepository chapterRepository;
     private final QuestionRepository questionRepository;
+    private final LearningObjectiveRepository learningObjectiveRepository;
     private final StructuralCharacteristicRepository structuralRepository;
     private final SurfaceCharacteristicRepository surfaceRepository;
     private final ConstraintRepository constraintRepository;
@@ -47,6 +50,7 @@ public class QuestionGenerationExecutor {
 
     public QuestionGenerationExecutor(ChapterRepository chapterRepository,
                                       QuestionRepository questionRepository,
+                                      LearningObjectiveRepository learningObjectiveRepository,
                                       StructuralCharacteristicRepository structuralRepository,
                                       SurfaceCharacteristicRepository surfaceRepository,
                                       ConstraintRepository constraintRepository,
@@ -56,6 +60,7 @@ public class QuestionGenerationExecutor {
                                       ObjectMapper objectMapper) {
         this.chapterRepository = chapterRepository;
         this.questionRepository = questionRepository;
+        this.learningObjectiveRepository = learningObjectiveRepository;
         this.structuralRepository = structuralRepository;
         this.surfaceRepository = surfaceRepository;
         this.constraintRepository = constraintRepository;
@@ -77,18 +82,19 @@ public class QuestionGenerationExecutor {
         try {
             String material = new String(
                     fileStorageService.downloadFile(chapter.getMarkdownObjectKey()), StandardCharsets.UTF_8);
-            List<String> structural = structuralRepository.findByChapterIdOrderByIdAsc(chapterId).stream()
-                    .map(c -> c.getContent()).toList();
+            List<LearningObjectiveInput> learningObjectives = loadLearningObjectives(chapterId);
             List<String> surface = surfaceRepository.findByChapterIdOrderByIdAsc(chapterId).stream()
                     .map(c -> c.getContent()).toList();
             List<String> constraints = constraintRepository.findByChapterIdOrderByIdAsc(chapterId).stream()
                     .map(c -> c.getContent()).toList();
 
-            log.info("Book {} chapter {}: generating questions ({} chars material, {} structural, {} surface, {} constraints)",
-                    bookId, ordinal, material.length(), structural.size(), surface.size(), constraints.size());
+            int structuralCount = learningObjectives.stream()
+                    .mapToInt(lo -> lo.structuralCharacteristicsOrEmpty().size()).sum();
+            log.info("Book {} chapter {}: generating questions ({} chars material, {} objectives, {} structural, {} surface, {} constraints)",
+                    bookId, ordinal, material.length(), learningObjectives.size(), structuralCount, surface.size(), constraints.size());
 
             QuizGenerationRequest request =
-                    new QuizGenerationRequest(List.of(material), constraints, structural, surface);
+                    new QuizGenerationRequest(List.of(material), constraints, learningObjectives, surface);
             GeneratedQuiz quiz = quizGenerationService.generate(request);
 
             persist(chapterId, quiz.questions());
@@ -98,6 +104,20 @@ public class QuestionGenerationExecutor {
             log.error("Book {} chapter {}: question generation failed", bookId, ordinal, e);
             finish(chapterId, ProcessingStatus.FAILED, truncate(e.getMessage()));
         }
+    }
+
+    /**
+     * Loads the chapter's learning objectives (ordered), each paired with its ordered
+     * structural characteristics, for sending into the prompt.
+     */
+    private List<LearningObjectiveInput> loadLearningObjectives(int chapterId) {
+        return learningObjectiveRepository.findByChapterIdOrderByIdAsc(chapterId).stream()
+                .map(lo -> new LearningObjectiveInput(
+                        lo.getDescription(),
+                        structuralRepository.findByLearningObjectiveIdOrderByIdAsc(lo.getId()).stream()
+                                .map(c -> c.getContent())
+                                .toList()))
+                .toList();
     }
 
     private void persist(int chapterId, List<GeneratedQuestion> payloads) {
