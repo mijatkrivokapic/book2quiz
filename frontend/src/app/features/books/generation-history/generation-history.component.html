@@ -1,0 +1,90 @@
+<div class="history">
+  <div class="history-header">
+    <span class="history-hint">Token usage and history of every generation for this chapter.</span>
+    <button mat-stroked-button [disabled]="loading()" (click)="reload()" matTooltip="Refresh">
+      <mat-icon>refresh</mat-icon>
+      Refresh
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="state-row"><mat-spinner diameter="32" /></div>
+  } @else {
+    @if (summary(); as s) {
+      <div class="totals">
+        <div class="total-card">
+          <span class="total-label">Total tokens</span>
+          <span class="total-value">{{ tokens(s.totalTokens) }}</span>
+        </div>
+        <div class="total-card">
+          <span class="total-label">Input</span>
+          <span class="total-value">{{ tokens(s.totalInputTokens) }}</span>
+        </div>
+        <div class="total-card">
+          <span class="total-label">Output</span>
+          <span class="total-value">{{ tokens(s.totalOutputTokens) }}</span>
+        </div>
+        <div class="total-card">
+          <span class="total-label">Generations</span>
+          <span class="total-value">{{ s.recordCount }}</span>
+        </div>
+      </div>
+
+      @if (byTypeEntries().length > 0) {
+        <div class="by-type">
+          @for (entry of byTypeEntries(); track entry.kind) {
+            <div class="by-type-row">
+              <span class="kind-chip" [class]="kindClass(entry.kind)">{{ entry.label }}</span>
+              <span class="by-type-count">{{ entry.usage.count }}×</span>
+              <span class="by-type-tokens">{{ tokens(entry.usage.totalTokens) }} tokens</span>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    @if (records().length === 0) {
+      <div class="state-container empty-state">
+        <mat-icon>receipt_long</mat-icon>
+        <p>No generations recorded yet.</p>
+        <p class="hint">Generating characteristics or questions will record token usage here.</p>
+      </div>
+    } @else {
+      <div class="table-scroll">
+        <table class="records">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Type</th>
+              <th>Model</th>
+              <th class="num">Input</th>
+              <th class="num">Output</th>
+              <th class="num">Total</th>
+              <th class="num">Duration</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of records(); track r.id) {
+              <tr>
+                <td class="when">{{ r.createdAt | date: 'short' }}</td>
+                <td><span class="kind-chip" [class]="kindClass(r.type)">{{ kindLabel(r.type) }}</span></td>
+                <td class="model">
+                  {{ r.model }}
+                  @if (r.promptVersion) {
+                    <span class="prompt-version">· {{ r.promptVersion }}</span>
+                  }
+                </td>
+                <td class="num">{{ tokens(r.inputTokens) }}</td>
+                <td class="num">{{ tokens(r.outputTokens) }}</td>
+                <td class="num total">{{ tokens(r.totalTokens) }}</td>
+                <td class="num">{{ duration(r.durationMs) }}</td>
+                <td class="details">{{ r.summary }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>

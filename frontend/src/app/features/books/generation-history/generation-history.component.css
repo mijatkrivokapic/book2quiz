@@ -1,0 +1,187 @@
+.history {
+  max-width: 960px;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.history-hint {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
+}
+
+.state-row {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+}
+
+/* Totals */
+.totals {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.total-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.015);
+}
+
+.total-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.total-value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* By-type rollup */
+.by-type {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.by-type-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.by-type-count {
+  font-weight: 600;
+}
+
+/* Kind chips */
+.kind-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.kind-characteristics {
+  background: #ede7f6;
+  color: #5e35b1;
+}
+
+.kind-questions {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.kind-question_regeneration {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+/* Records table */
+.table-scroll {
+  overflow-x: auto;
+}
+
+.records {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.records th,
+.records td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  text-align: left;
+  vertical-align: top;
+}
+
+.records th {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(0, 0, 0, 0.55);
+  white-space: nowrap;
+}
+
+.records td.num,
+.records th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.records td.total {
+  font-weight: 600;
+}
+
+.records td.when {
+  white-space: nowrap;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.records td.model {
+  font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+.prompt-version {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.records td.details {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 0;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.empty-state mat-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+}
+
+.empty-state .hint {
+  margin: 0;
+  font-size: 0.875rem;
+  max-width: 420px;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .totals {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

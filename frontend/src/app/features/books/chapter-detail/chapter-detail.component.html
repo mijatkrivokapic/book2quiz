@@ -103,6 +103,10 @@
           <mat-icon>quiz</mat-icon>
           Questions
         </mat-button-toggle>
+        <mat-button-toggle value="usage">
+          <mat-icon>receipt_long</mat-icon>
+          Usage
+        </mat-button-toggle>
       </mat-button-toggle-group>
     }
 
@@ -252,8 +256,10 @@
           [remove]="removeConstraint"
         />
       </div>
-    } @else {
+    } @else if (view() === 'questions') {
       <app-question-list [bookId]="bookId" [ordinal]="ordinal" />
+    } @else {
+      <app-generation-history [bookId]="bookId" [ordinal]="ordinal" />
     }
   }
 }

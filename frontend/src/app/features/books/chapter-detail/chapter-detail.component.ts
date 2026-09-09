@@ -24,8 +24,9 @@ import { Characteristic, CharacteristicStatus, LearningObjective } from '../../.
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { EditableItemListComponent } from '../editable-item-list/editable-item-list.component';
 import { QuestionListComponent } from '../question-list/question-list.component';
+import { GenerationHistoryComponent } from '../generation-history/generation-history.component';
 
-type DetailView = 'content' | 'characteristics' | 'questions';
+type DetailView = 'content' | 'characteristics' | 'questions' | 'usage';
 
 /** CRUD closures for one learning objective's structural characteristics list. */
 interface StructuralAdapters {
@@ -51,7 +52,8 @@ const CHAR_POLL_INTERVAL_MS = 3000;
     MatTooltipModule,
     MatButtonToggleModule,
     EditableItemListComponent,
-    QuestionListComponent
+    QuestionListComponent,
+    GenerationHistoryComponent
   ],
   standalone: true,
   templateUrl: './chapter-detail.component.html',
