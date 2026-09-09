@@ -29,6 +29,14 @@ public class LearningObjective {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
+    // Nullable so schema auto-update tolerates existing rows; the app always sets them,
+    // and legacy rows (null) are treated as APPROVED/MANUAL when mapped.
+    @Enumerated(EnumType.STRING)
+    private CharacteristicStatus status;
+
+    @Enumerated(EnumType.STRING)
+    private CharacteristicOrigin origin;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chapter_id", nullable = false)
     private Chapter chapter;

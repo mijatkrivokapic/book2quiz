@@ -52,12 +52,21 @@ public class LearningObjectiveService {
         LearningObjective lo = new LearningObjective();
         lo.setDescription(description);
         lo.setChapter(chapter);
+        // Manually authored objectives are trusted, so they start APPROVED.
+        lo.setStatus(CharacteristicStatus.APPROVED);
+        lo.setOrigin(CharacteristicOrigin.MANUAL);
         return toDTO(learningObjectiveRepository.save(lo));
     }
 
     public LearningObjectiveDTO update(Integer bookId, int ordinal, Integer loId, String description) {
         LearningObjective lo = findObjectiveOrThrow(bookId, ordinal, loId);
         lo.setDescription(description);
+        return toDTO(lo);
+    }
+
+    public LearningObjectiveDTO updateStatus(Integer bookId, int ordinal, Integer loId, CharacteristicStatus status) {
+        LearningObjective lo = findObjectiveOrThrow(bookId, ordinal, loId);
+        lo.setStatus(status);
         return toDTO(lo);
     }
 
@@ -107,7 +116,11 @@ public class LearningObjectiveService {
     // ---- Helpers ------------------------------------------------------------------------
 
     private LearningObjectiveDTO toDTO(LearningObjective lo) {
-        return new LearningObjectiveDTO(lo.getId(), lo.getDescription());
+        // Legacy rows (created before approval existed) count as manually approved.
+        return new LearningObjectiveDTO(
+                lo.getId(), lo.getDescription(),
+                lo.getStatus() == null ? CharacteristicStatus.APPROVED : lo.getStatus(),
+                lo.getOrigin() == null ? CharacteristicOrigin.MANUAL : lo.getOrigin());
     }
 
     private CharacteristicDTO toDTO(StructuralCharacteristic c) {

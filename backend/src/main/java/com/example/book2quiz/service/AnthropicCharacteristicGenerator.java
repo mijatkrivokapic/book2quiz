@@ -79,7 +79,7 @@ public class AnthropicCharacteristicGenerator implements CharacteristicGenerator
                 response.usage().inputTokens(),
                 response.usage().outputTokens());
         return new GeneratedCharacteristics(
-                result.analysis(), result.structuralCharacteristics(), result.surfaceCharacteristics(), usage);
+                result.analysis(), result.learningObjectives(), result.surfaceCharacteristics(), usage);
     }
 
     private MessageCreateParams buildParams(String userMessage) {

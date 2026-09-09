@@ -46,10 +46,13 @@ public class CharacteristicGenerationService {
         long durationMs = System.currentTimeMillis() - start;
 
         TokenUsage usage = result.usage();
-        log.info("Characteristics generated: model={} promptVersion={} durationMs={} inputTokens={} outputTokens={} structural={} surface={}",
+        int structuralCount = result.learningObjectives().stream()
+                .mapToInt(lo -> lo.structuralCharacteristics() == null ? 0 : lo.structuralCharacteristics().size())
+                .sum();
+        log.info("Characteristics generated: model={} promptVersion={} durationMs={} inputTokens={} outputTokens={} objectives={} structural={} surface={}",
                 usage.model(), properties.getPromptVersion(), durationMs,
                 usage.inputTokens(), usage.outputTokens(),
-                result.structuralCharacteristics().size(), result.surfaceCharacteristics().size());
+                result.learningObjectives().size(), structuralCount, result.surfaceCharacteristics().size());
         log.debug("Characteristic planning analysis (internal): {}", result.analysis());
 
         return result;

@@ -54,6 +54,14 @@ public class LearningObjectiveController {
         return ResponseEntity.ok(service.update(bookId, ordinal, loId, dto.description()));
     }
 
+    @PutMapping("/{loId}/status")
+    public ResponseEntity<LearningObjectiveDTO> updateStatus(@PathVariable Integer bookId,
+                                                             @PathVariable int ordinal,
+                                                             @PathVariable Integer loId,
+                                                             @Valid @RequestBody UpdateCharacteristicStatusRequest dto) {
+        return ResponseEntity.ok(service.updateStatus(bookId, ordinal, loId, dto.status()));
+    }
+
     @DeleteMapping("/{loId}")
     public ResponseEntity<Void> delete(@PathVariable Integer bookId,
                                        @PathVariable int ordinal,

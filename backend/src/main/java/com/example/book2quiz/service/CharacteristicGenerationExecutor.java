@@ -2,14 +2,16 @@ package com.example.book2quiz.service;
 
 import com.example.book2quiz.dto.characteristic.CharacteristicGenerationRequest;
 import com.example.book2quiz.dto.characteristic.GeneratedCharacteristics;
+import com.example.book2quiz.dto.characteristic.GeneratedLearningObjective;
 import com.example.book2quiz.model.Chapter;
 import com.example.book2quiz.model.CharacteristicOrigin;
 import com.example.book2quiz.model.CharacteristicStatus;
+import com.example.book2quiz.model.LearningObjective;
 import com.example.book2quiz.model.ProcessingStatus;
 import com.example.book2quiz.model.StructuralCharacteristic;
 import com.example.book2quiz.model.SurfaceCharacteristic;
 import com.example.book2quiz.repository.ChapterRepository;
-import com.example.book2quiz.repository.StructuralCharacteristicRepository;
+import com.example.book2quiz.repository.LearningObjectiveRepository;
 import com.example.book2quiz.repository.SurfaceCharacteristicRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,9 +23,10 @@ import java.util.List;
 
 /**
  * Runs characteristic generation on the {@code quizExecutor}. Assembles the chapter's
- * material, calls the generator, persists the structural and surface characteristics as
- * GENERATED / PENDING, and records the outcome on the chapter's
- * {@code characteristicGenerationStatus} so the UI can poll for progress.
+ * material, calls the generator, persists the learning objectives (each with its structural
+ * characteristics) and the surface characteristics as GENERATED / PENDING, and records the
+ * outcome on the chapter's {@code characteristicGenerationStatus} so the UI can poll for
+ * progress.
  */
 @Component
 public class CharacteristicGenerationExecutor {
@@ -31,18 +34,18 @@ public class CharacteristicGenerationExecutor {
     private static final Logger log = LoggerFactory.getLogger(CharacteristicGenerationExecutor.class);
 
     private final ChapterRepository chapterRepository;
-    private final StructuralCharacteristicRepository structuralRepository;
+    private final LearningObjectiveRepository learningObjectiveRepository;
     private final SurfaceCharacteristicRepository surfaceRepository;
     private final FileStorageService fileStorageService;
     private final CharacteristicGenerationService generationService;
 
     public CharacteristicGenerationExecutor(ChapterRepository chapterRepository,
-                                            StructuralCharacteristicRepository structuralRepository,
+                                            LearningObjectiveRepository learningObjectiveRepository,
                                             SurfaceCharacteristicRepository surfaceRepository,
                                             FileStorageService fileStorageService,
                                             CharacteristicGenerationService generationService) {
         this.chapterRepository = chapterRepository;
-        this.structuralRepository = structuralRepository;
+        this.learningObjectiveRepository = learningObjectiveRepository;
         this.surfaceRepository = surfaceRepository;
         this.fileStorageService = fileStorageService;
         this.generationService = generationService;
@@ -67,8 +70,12 @@ public class CharacteristicGenerationExecutor {
 
             persist(chapterId, result);
             finish(chapterId, ProcessingStatus.DONE, null);
-            log.info("Book {} chapter {}: generated {} structural + {} surface characteristic(s)",
-                    bookId, ordinal, result.structuralCharacteristics().size(), result.surfaceCharacteristics().size());
+            int structuralCount = result.learningObjectives().stream()
+                    .mapToInt(lo -> lo.structuralCharacteristics() == null ? 0 : lo.structuralCharacteristics().size())
+                    .sum();
+            log.info("Book {} chapter {}: generated {} learning objective(s), {} structural + {} surface characteristic(s)",
+                    bookId, ordinal, result.learningObjectives().size(), structuralCount,
+                    result.surfaceCharacteristics().size());
         } catch (Exception e) {
             log.error("Book {} chapter {}: characteristic generation failed", bookId, ordinal, e);
             finish(chapterId, ProcessingStatus.FAILED, truncate(e.getMessage()));
@@ -77,17 +84,37 @@ public class CharacteristicGenerationExecutor {
 
     private void persist(int chapterId, GeneratedCharacteristics result) {
         Chapter chapter = chapterRepository.findById(chapterId).orElseThrow();
-        for (String content : result.structuralCharacteristics()) {
-            if (content == null || content.isBlank()) {
+
+        // Each generated learning objective is persisted with its structural characteristics
+        // (cascaded through the objective). Both start GENERATED / PENDING for review.
+        for (GeneratedLearningObjective genObjective : result.learningObjectives()) {
+            if (genObjective == null
+                    || genObjective.description() == null || genObjective.description().isBlank()) {
                 continue;
             }
-            StructuralCharacteristic c = new StructuralCharacteristic();
-            c.setChapter(chapter);
-            c.setContent(content.strip());
-            c.setOrigin(CharacteristicOrigin.GENERATED);
-            c.setStatus(CharacteristicStatus.PENDING);
-            structuralRepository.save(c);
+            LearningObjective objective = new LearningObjective();
+            objective.setChapter(chapter);
+            objective.setDescription(genObjective.description().strip());
+            objective.setOrigin(CharacteristicOrigin.GENERATED);
+            objective.setStatus(CharacteristicStatus.PENDING);
+
+            List<String> structural = genObjective.structuralCharacteristics();
+            if (structural != null) {
+                for (String content : structural) {
+                    if (content == null || content.isBlank()) {
+                        continue;
+                    }
+                    StructuralCharacteristic c = new StructuralCharacteristic();
+                    c.setLearningObjective(objective);
+                    c.setContent(content.strip());
+                    c.setOrigin(CharacteristicOrigin.GENERATED);
+                    c.setStatus(CharacteristicStatus.PENDING);
+                    objective.getStructuralCharacteristics().add(c);
+                }
+            }
+            learningObjectiveRepository.save(objective);
         }
+
         for (String content : result.surfaceCharacteristics()) {
             if (content == null || content.isBlank()) {
                 continue;
