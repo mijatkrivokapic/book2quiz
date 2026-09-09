@@ -3,7 +3,6 @@ package com.example.book2quiz.controller;
 import com.example.book2quiz.dto.characteristic.CharacteristicDTO;
 import com.example.book2quiz.dto.characteristic.CharacteristicGenerationStatusResponse;
 import com.example.book2quiz.dto.characteristic.CharacteristicRequestDTO;
-import com.example.book2quiz.dto.characteristic.CharacteristicType;
 import com.example.book2quiz.dto.characteristic.UpdateCharacteristicStatusRequest;
 import com.example.book2quiz.service.ChapterCharacteristicService;
 import jakarta.validation.Valid;
@@ -42,54 +41,41 @@ public class ChapterCharacteristicController {
         return ResponseEntity.ok(service.getGenerationStatus(bookId, ordinal));
     }
 
-    @GetMapping("/{type}")
+    @GetMapping("/surface")
     public ResponseEntity<List<CharacteristicDTO>> list(@PathVariable Integer bookId,
-                                                        @PathVariable int ordinal,
-                                                        @PathVariable String type) {
-        return ResponseEntity.ok(service.list(bookId, ordinal, parseType(type)));
+                                                        @PathVariable int ordinal) {
+        return ResponseEntity.ok(service.listSurface(bookId, ordinal));
     }
 
-    @PostMapping("/{type}")
+    @PostMapping("/surface")
     public ResponseEntity<CharacteristicDTO> create(@PathVariable Integer bookId,
                                                     @PathVariable int ordinal,
-                                                    @PathVariable String type,
                                                     @Valid @RequestBody CharacteristicRequestDTO dto) {
-        CharacteristicDTO created = service.create(bookId, ordinal, parseType(type), dto.content());
+        CharacteristicDTO created = service.createSurface(bookId, ordinal, dto.content());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    @PutMapping("/{type}/{id}")
+    @PutMapping("/surface/{id}")
     public ResponseEntity<CharacteristicDTO> update(@PathVariable Integer bookId,
                                                     @PathVariable int ordinal,
-                                                    @PathVariable String type,
                                                     @PathVariable Integer id,
                                                     @Valid @RequestBody CharacteristicRequestDTO dto) {
-        return ResponseEntity.ok(service.update(bookId, ordinal, parseType(type), id, dto.content()));
+        return ResponseEntity.ok(service.updateSurface(bookId, ordinal, id, dto.content()));
     }
 
-    @PutMapping("/{type}/{id}/status")
+    @PutMapping("/surface/{id}/status")
     public ResponseEntity<CharacteristicDTO> updateStatus(@PathVariable Integer bookId,
                                                           @PathVariable int ordinal,
-                                                          @PathVariable String type,
                                                           @PathVariable Integer id,
                                                           @Valid @RequestBody UpdateCharacteristicStatusRequest dto) {
-        return ResponseEntity.ok(service.updateStatus(bookId, ordinal, parseType(type), id, dto.status()));
+        return ResponseEntity.ok(service.updateSurfaceStatus(bookId, ordinal, id, dto.status()));
     }
 
-    @DeleteMapping("/{type}/{id}")
+    @DeleteMapping("/surface/{id}")
     public ResponseEntity<Void> delete(@PathVariable Integer bookId,
                                        @PathVariable int ordinal,
-                                       @PathVariable String type,
                                        @PathVariable Integer id) {
-        service.delete(bookId, ordinal, parseType(type), id);
+        service.deleteSurface(bookId, ordinal, id);
         return ResponseEntity.noContent().build();
-    }
-
-    private CharacteristicType parseType(String type) {
-        try {
-            return CharacteristicType.valueOf(type.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Unknown characteristic type: " + type);
-        }
     }
 }

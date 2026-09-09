@@ -74,8 +74,9 @@ public class Chapter {
     @Column(columnDefinition = "TEXT")
     private String characteristicGenerationError;
 
+    // Structural characteristics now hang off learning objectives, not the chapter directly.
     @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<StructuralCharacteristic> structuralCharacteristics = new ArrayList<>();
+    private List<LearningObjective> learningObjectives = new ArrayList<>();
 
     @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SurfaceCharacteristic> surfaceCharacteristics = new ArrayList<>();

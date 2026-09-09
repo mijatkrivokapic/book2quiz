@@ -30,6 +30,6 @@ public class StructuralCharacteristic {
     private CharacteristicOrigin origin;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chapter_id", nullable = false)
-    private Chapter chapter;
+    @JoinColumn(name = "learning_objective_id")
+    private LearningObjective learningObjective;
 }

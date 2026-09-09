@@ -8,7 +8,9 @@ import java.util.Optional;
 
 public interface StructuralCharacteristicRepository extends JpaRepository<StructuralCharacteristic, Integer> {
 
-    List<StructuralCharacteristic> findByChapterIdOrderByIdAsc(Integer chapterId);
+     List<StructuralCharacteristic> findByLearningObjectiveIdOrderByIdAsc(Integer learningObjectiveId);
 
-    Optional<StructuralCharacteristic> findByIdAndChapterId(Integer id, Integer chapterId);
+    Optional<StructuralCharacteristic> findByIdAndLearningObjectiveId(Integer id, Integer learningObjectiveId);
+
+     List<StructuralCharacteristic> findByLearningObjectiveChapterIdOrderByIdAsc(Integer chapterId);
 }
