@@ -26,7 +26,7 @@
 /* Totals */
 .totals {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -53,6 +53,21 @@
   font-size: 1.4rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+.total-sub {
+  font-size: 0.72rem;
+  color: rgba(0, 0, 0, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+
+.total-card.cache .total-value {
+  color: #2e7d32;
+}
+
+.cache-cell {
+  color: rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
 }
 
 /* By-type rollup */

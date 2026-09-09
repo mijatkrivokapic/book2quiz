@@ -9,6 +9,8 @@ export interface GenerationRecord {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  cacheCreationInputTokens: number;
+  cacheReadInputTokens: number;
   durationMs: number;
   summary: string | null;
   createdAt: string;
@@ -19,6 +21,8 @@ export interface TypeUsage {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  cacheCreationInputTokens: number;
+  cacheReadInputTokens: number;
 }
 
 /** Aggregated token usage for a chapter. */
@@ -27,5 +31,7 @@ export interface GenerationUsageSummary {
   totalInputTokens: number;
   totalOutputTokens: number;
   totalTokens: number;
+  totalCacheCreationInputTokens: number;
+  totalCacheReadInputTokens: number;
   byType: Partial<Record<GenerationKind, TypeUsage>>;
 }

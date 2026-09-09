@@ -28,6 +28,11 @@
           <span class="total-label">Generations</span>
           <span class="total-value">{{ s.recordCount }}</span>
         </div>
+        <div class="total-card cache">
+          <span class="total-label">Cache read</span>
+          <span class="total-value">{{ tokens(s.totalCacheReadInputTokens) }}</span>
+          <span class="total-sub">written {{ tokens(s.totalCacheCreationInputTokens) }}</span>
+        </div>
       </div>
 
       @if (byTypeEntries().length > 0) {
@@ -60,6 +65,7 @@
               <th class="num">Input</th>
               <th class="num">Output</th>
               <th class="num">Total</th>
+              <th class="num">Cache w/r</th>
               <th class="num">Duration</th>
               <th>Details</th>
             </tr>
@@ -78,6 +84,9 @@
                 <td class="num">{{ tokens(r.inputTokens) }}</td>
                 <td class="num">{{ tokens(r.outputTokens) }}</td>
                 <td class="num total">{{ tokens(r.totalTokens) }}</td>
+                <td class="num cache-cell" matTooltip="cache write / read">
+                  {{ tokens(r.cacheCreationInputTokens) }} / {{ tokens(r.cacheReadInputTokens) }}
+                </td>
                 <td class="num">{{ duration(r.durationMs) }}</td>
                 <td class="details">{{ r.summary }}</td>
               </tr>
