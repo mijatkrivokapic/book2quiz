@@ -60,6 +60,14 @@ public class GenerationRecord {
     @Column(nullable = false)
     private long totalTokens;
 
+    // Prompt-caching activity: tokens written to / served from the cache for this call.
+    // Nullable so schema auto-update tolerates rows created before caching was added.
+    @Column
+    private Long cacheCreationInputTokens;
+
+    @Column
+    private Long cacheReadInputTokens;
+
     // Wall-clock duration of the generation call, in milliseconds.
     @Column(nullable = false)
     private long durationMs;

@@ -64,6 +64,8 @@ public class QuizProperties {
 
         private final StructuredOutputs structuredOutputs = new StructuredOutputs();
 
+        private final Cache cache = new Cache();
+
         public String getModel() {
             return model;
         }
@@ -106,6 +108,38 @@ public class QuizProperties {
 
         public StructuredOutputs getStructuredOutputs() {
             return structuredOutputs;
+        }
+
+        public Cache getCache() {
+            return cache;
+        }
+
+        /**
+         * Anthropic prompt caching (cache_control: ephemeral) for the reused prompt prefix —
+         * the system prompt (both generators) and the shared regeneration prefix.
+         */
+        public static class Cache {
+            /** When true, mark the reused prefix with cache_control. */
+            private boolean enabled = true;
+
+            /** Cache TTL: "5m" (5-minute) or "1h" (1-hour). */
+            private String ttl = "1h";
+
+            public boolean isEnabled() {
+                return enabled;
+            }
+
+            public void setEnabled(boolean enabled) {
+                this.enabled = enabled;
+            }
+
+            public String getTtl() {
+                return ttl;
+            }
+
+            public void setTtl(String ttl) {
+                this.ttl = ttl;
+            }
         }
 
         public static class StructuredOutputs {

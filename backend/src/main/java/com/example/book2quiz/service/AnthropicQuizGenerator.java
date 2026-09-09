@@ -2,10 +2,12 @@ package com.example.book2quiz.service;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.errors.AnthropicException;
+import com.anthropic.models.messages.ContentBlockParam;
 import com.anthropic.models.messages.JsonOutputFormat;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.OutputConfig;
+import com.anthropic.models.messages.TextBlockParam;
 import com.example.book2quiz.dto.quiz.GeneratedQuiz;
 import com.example.book2quiz.dto.quiz.QuestionRegenerationRequest;
 import com.example.book2quiz.dto.quiz.QuizGenerationRequest;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -68,10 +71,12 @@ public class AnthropicQuizGenerator implements QuizGenerator {
 
     @Override
     public GeneratedQuiz generate(QuizGenerationRequest request) {
-        String userMessage = promptBuilder.buildUserMessage(request);
-        MessageCreateParams params = buildParams(promptLoader.getSystemPrompt(), userMessage, outputConfig);
+        QuizPromptBuilder.PromptContent content = promptBuilder.buildUserMessage(request);
+        MessageCreateParams.Builder builder = baseParams(promptLoader.getSystemPrompt(), outputConfig);
+        addUserMessageBlocks(builder, content);
 
-        Message response = call(params);
+        Message response = call(builder.build());
+        ensureComplete(response);
 
         QuizGenerationResult result = parse(extractText(response), QuizGenerationResult.class, "quiz");
         return new GeneratedQuiz(result.analysis(), result.questions(), usageOf(response));
@@ -79,14 +84,57 @@ public class AnthropicQuizGenerator implements QuizGenerator {
 
     @Override
     public RegeneratedQuestion regenerate(QuestionRegenerationRequest request) {
-        String userMessage = promptBuilder.buildRegenerationUserMessage(request);
-        MessageCreateParams params =
-                buildParams(promptLoader.getRegenerateSystemPrompt(), userMessage, regenerateOutputConfig);
+        QuizPromptBuilder.PromptContent content = promptBuilder.buildRegenerationUserMessage(request);
+        MessageCreateParams.Builder builder =
+                baseParams(promptLoader.getRegenerateSystemPrompt(), regenerateOutputConfig);
+        addUserMessageBlocks(builder, content);
 
-        Message response = call(params);
+        Message response = call(builder.build());
+        ensureComplete(response);
 
         RegeneratedQuestionResult result = parse(extractText(response), RegeneratedQuestionResult.class, "question");
         return new RegeneratedQuestion(result.analysis(), result.question(), usageOf(response));
+    }
+
+    /**
+     * Appends the user message. When caching is on, the material and the
+     * characteristics/constraints get separate cache_control breakpoints (material first, so
+     * editing the characteristics leaves the material cache intact) and any per-request tail is
+     * a plain block. Otherwise the whole message is a single plain block.
+     */
+    private void addUserMessageBlocks(MessageCreateParams.Builder builder,
+                                      QuizPromptBuilder.PromptContent content) {
+        QuizProperties.Anthropic.Cache cache = properties.getAnthropic().getCache();
+        if (!cache.isEnabled()) {
+            builder.addUserMessage(content.joined());
+            return;
+        }
+
+        List<ContentBlockParam> blocks = new java.util.ArrayList<>();
+        if (!content.material().isBlank()) {
+            blocks.add(cachedTextBlock(content.material(), cache));
+        }
+        if (!content.context().isBlank()) {
+            blocks.add(cachedTextBlock(content.context(), cache));
+        }
+        if (!content.volatileSuffix().isBlank()) {
+            blocks.add(ContentBlockParam.ofText(TextBlockParam.builder()
+                    .text(content.volatileSuffix())
+                    .build()));
+        }
+
+        if (blocks.isEmpty()) {
+            builder.addUserMessage(content.joined());
+        } else {
+            builder.addUserMessageOfBlockParams(blocks);
+        }
+    }
+
+    private ContentBlockParam cachedTextBlock(String text, QuizProperties.Anthropic.Cache cache) {
+        return ContentBlockParam.ofText(TextBlockParam.builder()
+                .text(text)
+                .cacheControl(PromptCache.ephemeral(cache))
+                .build());
     }
 
     private Message call(MessageCreateParams params) {
@@ -97,20 +145,49 @@ public class AnthropicQuizGenerator implements QuizGenerator {
         }
     }
 
-    private TokenUsage usageOf(Message response) {
-        return new TokenUsage(
-                properties.getAnthropic().getModel(),
-                response.usage().inputTokens(),
-                response.usage().outputTokens());
+    /**
+     * Fails fast with a clear message when the model stopped at max_tokens — the JSON is then
+     * truncated and would otherwise blow up as an opaque Jackson end-of-input error.
+     */
+    private void ensureComplete(Message response) {
+        String stopReason = response.stopReason().map(Object::toString).orElse("");
+        if (stopReason.toLowerCase().contains("max_tokens")) {
+            throw new InvalidQuizOutputException(
+                    "Model output was truncated (stop_reason=max_tokens); the JSON is incomplete. "
+                            + "Increase quiz.anthropic.max-tokens.");
+        }
     }
 
-    private MessageCreateParams buildParams(String systemPrompt, String userMessage, OutputConfig config) {
+    private TokenUsage usageOf(Message response) {
+        var usage = response.usage();
+        return new TokenUsage(
+                properties.getAnthropic().getModel(),
+                usage.inputTokens(),
+                usage.outputTokens(),
+                usage.cacheCreationInputTokens().orElse(0L),
+                usage.cacheReadInputTokens().orElse(0L));
+    }
+
+    /**
+     * Builds the request with everything except the user message: model, max tokens, the
+     * system prompt (cache_control-marked when caching is on), optional temperature, and
+     * structured-output config. The caller adds the user message and builds.
+     */
+    private MessageCreateParams.Builder baseParams(String systemPrompt, OutputConfig config) {
         QuizProperties.Anthropic anthropic = properties.getAnthropic();
         MessageCreateParams.Builder builder = MessageCreateParams.builder()
                 .model(anthropic.getModel())
-                .maxTokens(anthropic.getMaxTokens())
-                .system(systemPrompt)
-                .addUserMessage(userMessage);
+                .maxTokens(anthropic.getMaxTokens());
+
+        QuizProperties.Anthropic.Cache cache = anthropic.getCache();
+        if (cache.isEnabled()) {
+            builder.systemOfTextBlockParams(List.of(TextBlockParam.builder()
+                    .text(systemPrompt)
+                    .cacheControl(PromptCache.ephemeral(cache))
+                    .build()));
+        } else {
+            builder.system(systemPrompt);
+        }
 
         if (anthropic.getTemperature() != null) {
             builder.temperature(anthropic.getTemperature());
@@ -123,7 +200,7 @@ public class AnthropicQuizGenerator implements QuizGenerator {
                 builder.putAdditionalHeader("anthropic-beta", beta);
             }
         }
-        return builder.build();
+        return builder;
     }
 
     private OutputConfig buildOutputConfig(Resource schemaResource) {

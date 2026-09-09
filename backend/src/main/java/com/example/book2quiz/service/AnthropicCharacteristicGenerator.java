@@ -2,10 +2,12 @@ package com.example.book2quiz.service;
 
 import com.anthropic.core.JsonValue;
 import com.anthropic.errors.AnthropicException;
+import com.anthropic.models.messages.ContentBlockParam;
 import com.anthropic.models.messages.JsonOutputFormat;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.OutputConfig;
+import com.anthropic.models.messages.TextBlockParam;
 import com.example.book2quiz.config.CharacteristicProperties;
 import com.example.book2quiz.config.QuizProperties;
 import com.example.book2quiz.dto.characteristic.CharacteristicGenerationRequest;
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -73,11 +76,21 @@ public class AnthropicCharacteristicGenerator implements CharacteristicGenerator
             throw new QuizApiException("Anthropic API call failed: " + e.getMessage(), e);
         }
 
+        String stopReason = response.stopReason().map(Object::toString).orElse("");
+        if (stopReason.toLowerCase().contains("max_tokens")) {
+            throw new InvalidQuizOutputException(
+                    "Model output was truncated (stop_reason=max_tokens); the JSON is incomplete. "
+                            + "Increase quiz.anthropic.max-tokens.");
+        }
+
         CharacteristicGenerationResult result = parse(extractText(response));
+        var apiUsage = response.usage();
         TokenUsage usage = new TokenUsage(
                 quizProperties.getAnthropic().getModel(),
-                response.usage().inputTokens(),
-                response.usage().outputTokens());
+                apiUsage.inputTokens(),
+                apiUsage.outputTokens(),
+                apiUsage.cacheCreationInputTokens().orElse(0L),
+                apiUsage.cacheReadInputTokens().orElse(0L));
         return new GeneratedCharacteristics(
                 result.analysis(), result.learningObjectives(), result.surfaceCharacteristics(), usage);
     }
@@ -86,9 +99,27 @@ public class AnthropicCharacteristicGenerator implements CharacteristicGenerator
         QuizProperties.Anthropic anthropic = quizProperties.getAnthropic();
         MessageCreateParams.Builder builder = MessageCreateParams.builder()
                 .model(anthropic.getModel())
-                .maxTokens(anthropic.getMaxTokens())
-                .system(systemPrompt)
-                .addUserMessage(userMessage);
+                .maxTokens(anthropic.getMaxTokens());
+
+        QuizProperties.Anthropic.Cache cache = anthropic.getCache();
+        if (cache.isEnabled()) {
+            // System prompt and the material each get their own cache breakpoint.
+            builder.systemOfTextBlockParams(List.of(TextBlockParam.builder()
+                    .text(systemPrompt)
+                    .cacheControl(PromptCache.ephemeral(cache))
+                    .build()));
+            if (userMessage.isBlank()) {
+                builder.addUserMessage(userMessage);
+            } else {
+                builder.addUserMessageOfBlockParams(List.of(ContentBlockParam.ofText(TextBlockParam.builder()
+                        .text(userMessage)
+                        .cacheControl(PromptCache.ephemeral(cache))
+                        .build())));
+            }
+        } else {
+            builder.system(systemPrompt);
+            builder.addUserMessage(userMessage);
+        }
 
         if (anthropic.getTemperature() != null) {
             builder.temperature(anthropic.getTemperature());

@@ -12,6 +12,8 @@ public record GenerationUsageSummaryDTO(
         long totalInputTokens,
         long totalOutputTokens,
         long totalTokens,
+        long totalCacheCreationInputTokens,
+        long totalCacheReadInputTokens,
         Map<GenerationKind, TypeUsage> byType
 ) {
     /** Per-generation-type rollup. */
@@ -19,7 +21,9 @@ public record GenerationUsageSummaryDTO(
             int count,
             long inputTokens,
             long outputTokens,
-            long totalTokens
+            long totalTokens,
+            long cacheCreationInputTokens,
+            long cacheReadInputTokens
     ) {
     }
 }

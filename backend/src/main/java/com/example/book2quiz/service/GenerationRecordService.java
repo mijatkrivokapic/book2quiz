@@ -55,6 +55,8 @@ public class GenerationRecordService {
             entry.setInputTokens(input);
             entry.setOutputTokens(output);
             entry.setTotalTokens(input + output);
+            entry.setCacheCreationInputTokens(usage == null ? 0 : usage.cacheCreationInputTokens());
+            entry.setCacheReadInputTokens(usage == null ? 0 : usage.cacheReadInputTokens());
             entry.setDurationMs(durationMs);
             entry.setSummary(summary);
             recordRepository.save(entry);
@@ -79,29 +81,43 @@ public class GenerationRecordService {
 
         long totalInput = 0;
         long totalOutput = 0;
-        Map<GenerationKind, long[]> acc = new EnumMap<>(GenerationKind.class); // [count, input, output]
+        long totalCacheCreation = 0;
+        long totalCacheRead = 0;
+        Map<GenerationKind, long[]> acc = new EnumMap<>(GenerationKind.class); // [count, input, output, cacheCreation, cacheRead]
         for (GenerationRecord r : records) {
+            long cacheCreation = nullToZero(r.getCacheCreationInputTokens());
+            long cacheRead = nullToZero(r.getCacheReadInputTokens());
             totalInput += r.getInputTokens();
             totalOutput += r.getOutputTokens();
-            long[] a = acc.computeIfAbsent(r.getType(), k -> new long[3]);
+            totalCacheCreation += cacheCreation;
+            totalCacheRead += cacheRead;
+            long[] a = acc.computeIfAbsent(r.getType(), k -> new long[5]);
             a[0] += 1;
             a[1] += r.getInputTokens();
             a[2] += r.getOutputTokens();
+            a[3] += cacheCreation;
+            a[4] += cacheRead;
         }
 
         Map<GenerationKind, GenerationUsageSummaryDTO.TypeUsage> byType = new EnumMap<>(GenerationKind.class);
         acc.forEach((type, a) -> byType.put(type,
-                new GenerationUsageSummaryDTO.TypeUsage((int) a[0], a[1], a[2], a[1] + a[2])));
+                new GenerationUsageSummaryDTO.TypeUsage((int) a[0], a[1], a[2], a[1] + a[2], a[3], a[4])));
 
         return new GenerationUsageSummaryDTO(
-                records.size(), totalInput, totalOutput, totalInput + totalOutput, byType);
+                records.size(), totalInput, totalOutput, totalInput + totalOutput,
+                totalCacheCreation, totalCacheRead, byType);
     }
 
     private GenerationRecordDTO toDTO(GenerationRecord r) {
         return new GenerationRecordDTO(
                 r.getId(), r.getType(), r.getModel(), r.getPromptVersion(),
                 r.getInputTokens(), r.getOutputTokens(), r.getTotalTokens(),
+                nullToZero(r.getCacheCreationInputTokens()), nullToZero(r.getCacheReadInputTokens()),
                 r.getDurationMs(), r.getSummary(), r.getCreatedAt());
+    }
+
+    private long nullToZero(Long value) {
+        return value == null ? 0 : value;
     }
 
     private Chapter findChapterOrThrow(Integer bookId, int ordinal) {

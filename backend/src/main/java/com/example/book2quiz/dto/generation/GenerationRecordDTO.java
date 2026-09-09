@@ -12,6 +12,8 @@ public record GenerationRecordDTO(
         long inputTokens,
         long outputTokens,
         long totalTokens,
+        long cacheCreationInputTokens,
+        long cacheReadInputTokens,
         long durationMs,
         String summary,
         Instant createdAt
