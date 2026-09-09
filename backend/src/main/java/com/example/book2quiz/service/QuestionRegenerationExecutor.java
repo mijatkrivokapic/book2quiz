@@ -1,10 +1,12 @@
 package com.example.book2quiz.service;
 
+import com.example.book2quiz.config.QuizProperties;
 import com.example.book2quiz.dto.quiz.GeneratedQuestion;
 import com.example.book2quiz.dto.quiz.LearningObjectiveInput;
 import com.example.book2quiz.dto.quiz.QuestionRegenerationRequest;
 import com.example.book2quiz.dto.quiz.RegeneratedQuestion;
 import com.example.book2quiz.model.Chapter;
+import com.example.book2quiz.model.GenerationKind;
 import com.example.book2quiz.model.ProcessingStatus;
 import com.example.book2quiz.model.Question;
 import com.example.book2quiz.model.QuestionOrigin;
@@ -48,6 +50,8 @@ public class QuestionRegenerationExecutor {
     private final ConstraintRepository constraintRepository;
     private final FileStorageService fileStorageService;
     private final QuizGenerationService quizGenerationService;
+    private final GenerationRecordService generationRecordService;
+    private final QuizProperties quizProperties;
     private final ObjectMapper objectMapper;
 
     public QuestionRegenerationExecutor(ChapterRepository chapterRepository,
@@ -59,6 +63,8 @@ public class QuestionRegenerationExecutor {
                                         ConstraintRepository constraintRepository,
                                         FileStorageService fileStorageService,
                                         QuizGenerationService quizGenerationService,
+                                        GenerationRecordService generationRecordService,
+                                        QuizProperties quizProperties,
                                         ObjectMapper objectMapper) {
         this.chapterRepository = chapterRepository;
         this.questionRepository = questionRepository;
@@ -69,6 +75,8 @@ public class QuestionRegenerationExecutor {
         this.constraintRepository = constraintRepository;
         this.fileStorageService = fileStorageService;
         this.quizGenerationService = quizGenerationService;
+        this.generationRecordService = generationRecordService;
+        this.quizProperties = quizProperties;
         this.objectMapper = objectMapper;
     }
 
@@ -106,9 +114,13 @@ public class QuestionRegenerationExecutor {
                     List.of(material), learningObjectives, surface, constraints,
                     question.getContent(), otherQuestions, guideline);
 
+            long start = System.currentTimeMillis();
             RegeneratedQuestion result = quizGenerationService.regenerate(request);
+            long durationMs = System.currentTimeMillis() - start;
 
             saveNewActiveVersion(questionId, result, guideline);
+            generationRecordService.record(chapterId, GenerationKind.QUESTION_REGENERATION, result.usage(),
+                    quizProperties.getPromptVersion(), durationMs, "question #" + questionId);
             log.info("Book {} chapter {}: question {} regenerated", bookId, ordinal, questionId);
         } catch (Exception e) {
             log.error("Book {} chapter {}: question {} regeneration failed", bookId, ordinal, questionId, e);

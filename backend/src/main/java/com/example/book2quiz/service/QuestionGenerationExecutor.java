@@ -1,10 +1,12 @@
 package com.example.book2quiz.service;
 
+import com.example.book2quiz.config.QuizProperties;
 import com.example.book2quiz.dto.quiz.GeneratedQuestion;
 import com.example.book2quiz.dto.quiz.GeneratedQuiz;
 import com.example.book2quiz.dto.quiz.LearningObjectiveInput;
 import com.example.book2quiz.dto.quiz.QuizGenerationRequest;
 import com.example.book2quiz.model.Chapter;
+import com.example.book2quiz.model.GenerationKind;
 import com.example.book2quiz.model.ProcessingStatus;
 import com.example.book2quiz.model.Question;
 import com.example.book2quiz.model.QuestionOrigin;
@@ -46,6 +48,8 @@ public class QuestionGenerationExecutor {
     private final FileStorageService fileStorageService;
     private final QuizGenerationService quizGenerationService;
     private final QuestionVersionManager versionManager;
+    private final GenerationRecordService generationRecordService;
+    private final QuizProperties quizProperties;
     private final ObjectMapper objectMapper;
 
     public QuestionGenerationExecutor(ChapterRepository chapterRepository,
@@ -57,6 +61,8 @@ public class QuestionGenerationExecutor {
                                       FileStorageService fileStorageService,
                                       QuizGenerationService quizGenerationService,
                                       QuestionVersionManager versionManager,
+                                      GenerationRecordService generationRecordService,
+                                      QuizProperties quizProperties,
                                       ObjectMapper objectMapper) {
         this.chapterRepository = chapterRepository;
         this.questionRepository = questionRepository;
@@ -67,6 +73,8 @@ public class QuestionGenerationExecutor {
         this.fileStorageService = fileStorageService;
         this.quizGenerationService = quizGenerationService;
         this.versionManager = versionManager;
+        this.generationRecordService = generationRecordService;
+        this.quizProperties = quizProperties;
         this.objectMapper = objectMapper;
     }
 
@@ -95,9 +103,14 @@ public class QuestionGenerationExecutor {
 
             QuizGenerationRequest request =
                     new QuizGenerationRequest(List.of(material), constraints, learningObjectives, surface);
+
+            long start = System.currentTimeMillis();
             GeneratedQuiz quiz = quizGenerationService.generate(request);
+            long durationMs = System.currentTimeMillis() - start;
 
             persist(chapterId, quiz.questions());
+            generationRecordService.record(chapterId, GenerationKind.QUESTIONS, quiz.usage(),
+                    quizProperties.getPromptVersion(), durationMs, quiz.questions().size() + " questions");
             finish(chapterId, ProcessingStatus.DONE, null);
             log.info("Book {} chapter {}: generated {} question(s)", bookId, ordinal, quiz.questions().size());
         } catch (Exception e) {

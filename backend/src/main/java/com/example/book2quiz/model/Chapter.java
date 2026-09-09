@@ -87,6 +87,9 @@ public class Chapter {
     @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Question> questions = new ArrayList<>();
 
+    @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GenerationRecord> generationRecords = new ArrayList<>();
+
     @CreationTimestamp
     @Column(updatable = false)
     private Instant createdAt;

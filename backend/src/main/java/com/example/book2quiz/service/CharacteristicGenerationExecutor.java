@@ -1,11 +1,13 @@
 package com.example.book2quiz.service;
 
+import com.example.book2quiz.config.CharacteristicProperties;
 import com.example.book2quiz.dto.characteristic.CharacteristicGenerationRequest;
 import com.example.book2quiz.dto.characteristic.GeneratedCharacteristics;
 import com.example.book2quiz.dto.characteristic.GeneratedLearningObjective;
 import com.example.book2quiz.model.Chapter;
 import com.example.book2quiz.model.CharacteristicOrigin;
 import com.example.book2quiz.model.CharacteristicStatus;
+import com.example.book2quiz.model.GenerationKind;
 import com.example.book2quiz.model.LearningObjective;
 import com.example.book2quiz.model.ProcessingStatus;
 import com.example.book2quiz.model.StructuralCharacteristic;
@@ -38,17 +40,23 @@ public class CharacteristicGenerationExecutor {
     private final SurfaceCharacteristicRepository surfaceRepository;
     private final FileStorageService fileStorageService;
     private final CharacteristicGenerationService generationService;
+    private final GenerationRecordService generationRecordService;
+    private final CharacteristicProperties characteristicProperties;
 
     public CharacteristicGenerationExecutor(ChapterRepository chapterRepository,
                                             LearningObjectiveRepository learningObjectiveRepository,
                                             SurfaceCharacteristicRepository surfaceRepository,
                                             FileStorageService fileStorageService,
-                                            CharacteristicGenerationService generationService) {
+                                            CharacteristicGenerationService generationService,
+                                            GenerationRecordService generationRecordService,
+                                            CharacteristicProperties characteristicProperties) {
         this.chapterRepository = chapterRepository;
         this.learningObjectiveRepository = learningObjectiveRepository;
         this.surfaceRepository = surfaceRepository;
         this.fileStorageService = fileStorageService;
         this.generationService = generationService;
+        this.generationRecordService = generationRecordService;
+        this.characteristicProperties = characteristicProperties;
     }
 
     @Async("quizExecutor")
@@ -65,14 +73,20 @@ public class CharacteristicGenerationExecutor {
                     fileStorageService.downloadFile(chapter.getMarkdownObjectKey()), StandardCharsets.UTF_8);
             log.info("Book {} chapter {}: generating characteristics ({} chars material)", bookId, ordinal, material.length());
 
+            long start = System.currentTimeMillis();
             GeneratedCharacteristics result =
                     generationService.generate(new CharacteristicGenerationRequest(List.of(material)));
+            long durationMs = System.currentTimeMillis() - start;
 
             persist(chapterId, result);
-            finish(chapterId, ProcessingStatus.DONE, null);
             int structuralCount = result.learningObjectives().stream()
                     .mapToInt(lo -> lo.structuralCharacteristics() == null ? 0 : lo.structuralCharacteristics().size())
                     .sum();
+            generationRecordService.record(chapterId, GenerationKind.CHARACTERISTICS, result.usage(),
+                    characteristicProperties.getPromptVersion(), durationMs,
+                    result.learningObjectives().size() + " objectives, " + structuralCount + " structural, "
+                            + result.surfaceCharacteristics().size() + " surface");
+            finish(chapterId, ProcessingStatus.DONE, null);
             log.info("Book {} chapter {}: generated {} learning objective(s), {} structural + {} surface characteristic(s)",
                     bookId, ordinal, result.learningObjectives().size(), structuralCount,
                     result.surfaceCharacteristics().size());
