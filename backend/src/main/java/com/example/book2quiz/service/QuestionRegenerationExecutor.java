@@ -1,6 +1,7 @@
 package com.example.book2quiz.service;
 
 import com.example.book2quiz.config.QuizProperties;
+import com.example.book2quiz.dto.generation.GenerationEvent;
 import com.example.book2quiz.dto.quiz.GeneratedQuestion;
 import com.example.book2quiz.dto.quiz.LearningObjectiveInput;
 import com.example.book2quiz.dto.quiz.QuestionRegenerationRequest;
@@ -52,6 +53,7 @@ public class QuestionRegenerationExecutor {
     private final QuizGenerationService quizGenerationService;
     private final GenerationRecordService generationRecordService;
     private final QuizProperties quizProperties;
+    private final GenerationEventPublisher events;
     private final ObjectMapper objectMapper;
 
     public QuestionRegenerationExecutor(ChapterRepository chapterRepository,
@@ -65,6 +67,7 @@ public class QuestionRegenerationExecutor {
                                         QuizGenerationService quizGenerationService,
                                         GenerationRecordService generationRecordService,
                                         QuizProperties quizProperties,
+                                        GenerationEventPublisher events,
                                         ObjectMapper objectMapper) {
         this.chapterRepository = chapterRepository;
         this.questionRepository = questionRepository;
@@ -77,6 +80,7 @@ public class QuestionRegenerationExecutor {
         this.quizGenerationService = quizGenerationService;
         this.generationRecordService = generationRecordService;
         this.quizProperties = quizProperties;
+        this.events = events;
         this.objectMapper = objectMapper;
     }
 
@@ -121,6 +125,7 @@ public class QuestionRegenerationExecutor {
             saveNewActiveVersion(questionId, result, guideline);
             generationRecordService.record(chapterId, GenerationKind.QUESTION_REGENERATION, result.usage(),
                     quizProperties.getPromptVersion(), durationMs, "question #" + questionId);
+            events.publish(bookId, GenerationEvent.regeneration(ordinal, questionId, ProcessingStatus.DONE, null));
             log.info("Book {} chapter {}: question {} regenerated", bookId, ordinal, questionId);
         } catch (Exception e) {
             log.error("Book {} chapter {}: question {} regeneration failed", bookId, ordinal, questionId, e);
@@ -129,6 +134,8 @@ public class QuestionRegenerationExecutor {
                 q.setRegenerationError(truncate(e.getMessage()));
                 questionRepository.save(q);
             });
+            events.publish(bookId, GenerationEvent.regeneration(ordinal, questionId, ProcessingStatus.FAILED,
+                    truncate(e.getMessage())));
         }
     }
 

@@ -1,5 +1,6 @@
 package com.example.book2quiz.service;
 
+import com.example.book2quiz.dto.generation.GenerationEvent;
 import com.example.book2quiz.model.Book;
 import com.example.book2quiz.model.Chapter;
 import com.example.book2quiz.model.ProcessingStatus;
@@ -30,17 +31,20 @@ public class ChapterPipelineExecutor {
     private final ChapterExtractionService extractionService;
     private final MarkdownWorkerClient workerClient;
     private final FileStorageService fileStorageService;
+    private final GenerationEventPublisher events;
 
     public ChapterPipelineExecutor(BookRepository bookRepository,
                                    ChapterRepository chapterRepository,
                                    ChapterExtractionService extractionService,
                                    MarkdownWorkerClient workerClient,
-                                   FileStorageService fileStorageService) {
+                                   FileStorageService fileStorageService,
+                                   GenerationEventPublisher events) {
         this.bookRepository = bookRepository;
         this.chapterRepository = chapterRepository;
         this.extractionService = extractionService;
         this.workerClient = workerClient;
         this.fileStorageService = fileStorageService;
+        this.events = events;
     }
 
     /**
@@ -88,6 +92,7 @@ public class ChapterPipelineExecutor {
             log.error("Book {}: chapter detection/splitting failed", bookId, e);
             book.setChapterExtractionStatus(ProcessingStatus.FAILED);
             bookRepository.save(book);
+            events.publish(bookId, GenerationEvent.extraction(ProcessingStatus.FAILED));
             return;
         }
 
@@ -118,6 +123,7 @@ public class ChapterPipelineExecutor {
         chapter.setStatus(ProcessingStatus.PROCESSING);
         chapter.setErrorMessage(null);
         chapterRepository.save(chapter);
+        events.publish(bookId, GenerationEvent.chapter(chapter.getOrdinal(), ProcessingStatus.PROCESSING, null));
 
         try {
             log.info("Book {}: converting chapter {} (ordinal {}) from {}",
@@ -133,6 +139,7 @@ public class ChapterPipelineExecutor {
             chapter.setStatus(ProcessingStatus.DONE);
             chapter.setErrorMessage(null);
             chapterRepository.save(chapter);
+            events.publish(bookId, GenerationEvent.chapter(chapter.getOrdinal(), ProcessingStatus.DONE, null));
             log.info("Book {}: chapter {} (ordinal {}) DONE -> {}",
                     bookId, chapterId, chapter.getOrdinal(), markdownKey);
         } catch (Exception e) {
@@ -141,6 +148,8 @@ public class ChapterPipelineExecutor {
             chapter.setStatus(ProcessingStatus.FAILED);
             chapter.setErrorMessage(truncate(e.getMessage()));
             chapterRepository.save(chapter);
+            events.publish(bookId, GenerationEvent.chapter(chapter.getOrdinal(), ProcessingStatus.FAILED,
+                    chapter.getErrorMessage()));
         }
     }
 
@@ -160,6 +169,7 @@ public class ChapterPipelineExecutor {
                 : (anyPending ? ProcessingStatus.PROCESSING : ProcessingStatus.DONE);
         book.setChapterExtractionStatus(bookStatus);
         bookRepository.save(book);
+        events.publish(bookId, GenerationEvent.extraction(bookStatus));
         log.info("Book {}: chapter extraction status = {}", bookId, bookStatus);
     }
 

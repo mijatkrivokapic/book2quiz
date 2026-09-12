@@ -4,6 +4,7 @@ import com.example.book2quiz.config.CharacteristicProperties;
 import com.example.book2quiz.dto.characteristic.CharacteristicGenerationRequest;
 import com.example.book2quiz.dto.characteristic.GeneratedCharacteristics;
 import com.example.book2quiz.dto.characteristic.GeneratedLearningObjective;
+import com.example.book2quiz.dto.generation.GenerationEvent;
 import com.example.book2quiz.model.Chapter;
 import com.example.book2quiz.model.CharacteristicOrigin;
 import com.example.book2quiz.model.CharacteristicStatus;
@@ -42,6 +43,7 @@ public class CharacteristicGenerationExecutor {
     private final CharacteristicGenerationService generationService;
     private final GenerationRecordService generationRecordService;
     private final CharacteristicProperties characteristicProperties;
+    private final GenerationEventPublisher events;
 
     public CharacteristicGenerationExecutor(ChapterRepository chapterRepository,
                                             LearningObjectiveRepository learningObjectiveRepository,
@@ -49,7 +51,8 @@ public class CharacteristicGenerationExecutor {
                                             FileStorageService fileStorageService,
                                             CharacteristicGenerationService generationService,
                                             GenerationRecordService generationRecordService,
-                                            CharacteristicProperties characteristicProperties) {
+                                            CharacteristicProperties characteristicProperties,
+                                            GenerationEventPublisher events) {
         this.chapterRepository = chapterRepository;
         this.learningObjectiveRepository = learningObjectiveRepository;
         this.surfaceRepository = surfaceRepository;
@@ -57,6 +60,7 @@ public class CharacteristicGenerationExecutor {
         this.generationService = generationService;
         this.generationRecordService = generationRecordService;
         this.characteristicProperties = characteristicProperties;
+        this.events = events;
     }
 
     @Async("quizExecutor")
@@ -87,12 +91,15 @@ public class CharacteristicGenerationExecutor {
                     result.learningObjectives().size() + " objectives, " + structuralCount + " structural, "
                             + result.surfaceCharacteristics().size() + " surface");
             finish(chapterId, ProcessingStatus.DONE, null);
+            events.publish(bookId, GenerationEvent.characteristics(ordinal, ProcessingStatus.DONE, null));
             log.info("Book {} chapter {}: generated {} learning objective(s), {} structural + {} surface characteristic(s)",
                     bookId, ordinal, result.learningObjectives().size(), structuralCount,
                     result.surfaceCharacteristics().size());
         } catch (Exception e) {
             log.error("Book {} chapter {}: characteristic generation failed", bookId, ordinal, e);
             finish(chapterId, ProcessingStatus.FAILED, truncate(e.getMessage()));
+            events.publish(bookId, GenerationEvent.characteristics(ordinal, ProcessingStatus.FAILED,
+                    truncate(e.getMessage())));
         }
     }
 

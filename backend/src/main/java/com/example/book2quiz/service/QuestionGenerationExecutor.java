@@ -3,6 +3,7 @@ package com.example.book2quiz.service;
 import com.example.book2quiz.config.QuizProperties;
 import com.example.book2quiz.dto.quiz.GeneratedQuestion;
 import com.example.book2quiz.dto.quiz.GeneratedQuiz;
+import com.example.book2quiz.dto.generation.GenerationEvent;
 import com.example.book2quiz.dto.quiz.LearningObjectiveInput;
 import com.example.book2quiz.dto.quiz.QuizGenerationRequest;
 import com.example.book2quiz.model.Chapter;
@@ -50,6 +51,7 @@ public class QuestionGenerationExecutor {
     private final QuestionVersionManager versionManager;
     private final GenerationRecordService generationRecordService;
     private final QuizProperties quizProperties;
+    private final GenerationEventPublisher events;
     private final ObjectMapper objectMapper;
 
     public QuestionGenerationExecutor(ChapterRepository chapterRepository,
@@ -63,6 +65,7 @@ public class QuestionGenerationExecutor {
                                       QuestionVersionManager versionManager,
                                       GenerationRecordService generationRecordService,
                                       QuizProperties quizProperties,
+                                      GenerationEventPublisher events,
                                       ObjectMapper objectMapper) {
         this.chapterRepository = chapterRepository;
         this.questionRepository = questionRepository;
@@ -75,6 +78,7 @@ public class QuestionGenerationExecutor {
         this.versionManager = versionManager;
         this.generationRecordService = generationRecordService;
         this.quizProperties = quizProperties;
+        this.events = events;
         this.objectMapper = objectMapper;
     }
 
@@ -112,10 +116,12 @@ public class QuestionGenerationExecutor {
             generationRecordService.record(chapterId, GenerationKind.QUESTIONS, quiz.usage(),
                     quizProperties.getPromptVersion(), durationMs, quiz.questions().size() + " questions");
             finish(chapterId, ProcessingStatus.DONE, null);
+            events.publish(bookId, GenerationEvent.questions(ordinal, ProcessingStatus.DONE, null));
             log.info("Book {} chapter {}: generated {} question(s)", bookId, ordinal, quiz.questions().size());
         } catch (Exception e) {
             log.error("Book {} chapter {}: question generation failed", bookId, ordinal, e);
             finish(chapterId, ProcessingStatus.FAILED, truncate(e.getMessage()));
+            events.publish(bookId, GenerationEvent.questions(ordinal, ProcessingStatus.FAILED, truncate(e.getMessage())));
         }
     }
 
