@@ -1,10 +1,12 @@
 import { Component, OnDestroy, OnInit, computed, inject, input, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { QuestionService } from '../../../core/services/question.service';
+import { GenerationEventsService } from '../../../core/services/generation-events.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { extractErrorMessage } from '../../../core/utils/http-error.util';
 import { renderMarkdown, renderMarkdownInline } from '../../../core/utils/markdown.util';
@@ -20,8 +22,6 @@ import {
   QuestionVersionsDialogData
 } from '../question-versions-dialog/question-versions-dialog.component';
 
-const POLL_INTERVAL_MS = 3000;
-
 @Component({
   selector: 'app-question-list',
   imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTooltipModule],
@@ -31,6 +31,7 @@ const POLL_INTERVAL_MS = 3000;
 })
 export class QuestionListComponent implements OnInit, OnDestroy {
   private readonly questionService = inject(QuestionService);
+  private readonly events = inject(GenerationEventsService);
   private readonly notification = inject(NotificationService);
   private readonly dialog = inject(MatDialog);
 
@@ -50,26 +51,44 @@ export class QuestionListComponent implements OnInit, OnDestroy {
     () => this.questions().filter(q => q.status === 'APPROVED').length
   );
 
-  private pollHandle?: ReturnType<typeof setTimeout>;
-  private regenPollHandle?: ReturnType<typeof setTimeout>;
+  private eventsSub?: Subscription;
 
   ngOnInit(): void {
     this.load();
-    // Resume the progress indicator if a generation is still running (e.g. after a reload).
-    this.questionService.getGenerationStatus(this.bookId(), this.ordinal()).subscribe({
-      next: s => {
-        if (s.status === 'PROCESSING') {
-          this.generating.set(true);
-          this.schedulePoll();
+    this.resumeGenerationStatus();
+
+    this.eventsSub = this.events.stream(this.bookId()).subscribe(msg => {
+      if (msg.type === 'connected') {
+        this.resumeGenerationStatus();       // reconcile question generation
+        if (this.anyRegenerating()) {
+          this.load();                        // reconcile in-flight regenerations
         }
-      },
-      error: () => {}
+        return;
+      }
+      const event = msg.event;
+      if (event.ordinal !== this.ordinal()) {
+        return;
+      }
+      if (event.kind === 'QUESTIONS') {
+        if (event.status === 'DONE') {
+          this.generating.set(false);
+          this.notification.success('Questions generated (pending review).');
+          this.load();
+        } else if (event.status === 'FAILED') {
+          this.generating.set(false);
+          this.notification.error(event.error ?? 'Question generation failed.');
+        }
+      } else if (event.kind === 'REGENERATION') {
+        if (event.status === 'DONE') {
+          this.notification.success('Question regenerated (new version pending review).');
+        }
+        this.load(); // refresh regenerationStatus / content (DONE or FAILED)
+      }
     });
   }
 
   ngOnDestroy(): void {
-    clearTimeout(this.pollHandle);
-    clearTimeout(this.regenPollHandle);
+    this.eventsSub?.unsubscribe();
   }
 
   protected regenerate(question: Question): void {
@@ -83,11 +102,10 @@ export class QuestionListComponent implements OnInit, OnDestroy {
         this.questionService.regenerate(this.bookId(), this.ordinal(), question.id, guideline).subscribe({
           next: () => {
             this.notification.success('Regeneration started.');
-            // Optimistically mark this card as processing, then poll.
+            // Optimistically mark this card as processing; completion arrives via SSE.
             this.questions.update(list =>
               list.map(q => (q.id === question.id ? { ...q, regenerationStatus: 'PROCESSING' } : q))
             );
-            this.scheduleRegenPoll();
           },
           error: err => this.notification.error(extractErrorMessage(err, 'Failed to start regeneration.'))
         });
@@ -114,35 +132,10 @@ export class QuestionListComponent implements OnInit, OnDestroy {
     return this.questions().some(q => q.regenerationStatus === 'PROCESSING');
   }
 
-  private scheduleRegenPoll(): void {
-    clearTimeout(this.regenPollHandle);
-    if (this.anyRegenerating()) {
-      this.regenPollHandle = setTimeout(() => this.pollRegen(), POLL_INTERVAL_MS);
-    }
-  }
-
-  private pollRegen(): void {
-    this.questionService.list(this.bookId(), this.ordinal()).subscribe({
-      next: questions => {
-        const wasRegenerating = this.anyRegenerating();
-        this.questions.set(questions);
-        if (this.anyRegenerating()) {
-          this.scheduleRegenPoll();
-        } else if (wasRegenerating) {
-          this.notification.success('Question regenerated (new version pending review).');
-        }
-      },
-      error: () => this.scheduleRegenPoll()
-    });
-  }
-
   protected generate(): void {
     this.generating.set(true);
     this.questionService.generate(this.bookId(), this.ordinal()).subscribe({
-      next: () => {
-        this.notification.success('Question generation started.');
-        this.schedulePoll();
-      },
+      next: () => this.notification.success('Question generation started.'),
       error: err => {
         this.generating.set(false);
         this.notification.error(extractErrorMessage(err, 'Failed to start question generation.'));
@@ -150,28 +143,21 @@ export class QuestionListComponent implements OnInit, OnDestroy {
     });
   }
 
-  private schedulePoll(): void {
-    clearTimeout(this.pollHandle);
-    this.pollHandle = setTimeout(() => this.pollStatus(), POLL_INTERVAL_MS);
-  }
-
-  private pollStatus(): void {
+  /** One-shot status check (on init and on SSE reconnect) to resume/reconcile generation. */
+  private resumeGenerationStatus(): void {
     this.questionService.getGenerationStatus(this.bookId(), this.ordinal()).subscribe({
       next: s => {
         if (s.status === 'PROCESSING') {
-          this.schedulePoll();
-        } else if (s.status === 'DONE') {
+          this.generating.set(true);
+        } else if (s.status === 'DONE' && this.generating()) {
           this.generating.set(false);
-          this.notification.success('Questions generated (pending review).');
           this.load();
-        } else if (s.status === 'FAILED') {
+        } else if (s.status === 'FAILED' && this.generating()) {
           this.generating.set(false);
           this.notification.error(s.error ?? 'Question generation failed.');
-        } else {
-          this.generating.set(false);
         }
       },
-      error: () => this.schedulePoll()
+      error: () => {}
     });
   }
 
@@ -281,8 +267,6 @@ export class QuestionListComponent implements OnInit, OnDestroy {
       next: questions => {
         this.questions.set(questions);
         this.loading.set(false);
-        // Resume the regeneration indicator if a run is still in progress.
-        this.scheduleRegenPoll();
       },
       error: err => {
         this.loading.set(false);

@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,6 +9,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { BookService } from '../../../core/services/book.service';
 import { ChapterService } from '../../../core/services/chapter.service';
+import { GenerationEventsService } from '../../../core/services/generation-events.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { extractErrorMessage } from '../../../core/utils/http-error.util';
 import { Book } from '../../../core/models/book.model';
@@ -17,9 +19,6 @@ import {
   AddChapterDialogComponent,
   AddChapterDialogData
 } from '../add-chapter-dialog/add-chapter-dialog.component';
-
-const POLL_INTERVAL_MS = 4000;
-const MAX_EMPTY_POLLS = 15;
 
 @Component({
   selector: 'app-book-chapters',
@@ -39,6 +38,7 @@ export class BookChaptersComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly bookService = inject(BookService);
   private readonly chapterService = inject(ChapterService);
+  private readonly events = inject(GenerationEventsService);
   private readonly notification = inject(NotificationService);
   private readonly dialog = inject(MatDialog);
 
@@ -55,16 +55,31 @@ export class BookChaptersComponent implements OnInit, OnDestroy {
     this.chapters().some(c => c.status === 'PENDING' || c.status === 'PROCESSING')
   );
 
-  private pollHandle?: ReturnType<typeof setTimeout>;
-  private emptyPolls = 0;
+  private eventsSub?: Subscription;
 
   ngOnInit(): void {
     this.loadBook();
     this.loadChapters(true);
+    this.eventsSub = this.events.stream(this.bookId).subscribe(msg => {
+      if (msg.type === 'connected') {
+        this.loadChapters(false); // reconcile on (re)connect
+        return;
+      }
+      const event = msg.event;
+      if (event.kind === 'CHAPTER') {
+        this.loadChapters(false);
+      } else if (event.kind === 'EXTRACTION') {
+        this.extracting.set(false);
+        if (event.status === 'FAILED') {
+          this.notification.error('Chapter extraction failed. Please check the server logs.');
+        }
+        this.loadChapters(false);
+      }
+    });
   }
 
   ngOnDestroy(): void {
-    clearTimeout(this.pollHandle);
+    this.eventsSub?.unsubscribe();
   }
 
   protected extract(): void {
@@ -146,12 +161,10 @@ export class BookChaptersComponent implements OnInit, OnDestroy {
 
   private startExtraction(): void {
     this.extracting.set(true);
-    this.emptyPolls = 0;
     this.chapterService.extractChapters(this.bookId).subscribe({
       next: () => {
         this.notification.success('Chapter extraction started.');
-        clearTimeout(this.pollHandle);
-        this.pollHandle = setTimeout(() => this.loadChapters(false), POLL_INTERVAL_MS);
+        // Progress arrives via the SSE stream (CHAPTER / EXTRACTION events).
       },
       error: err => {
         this.extracting.set(false);
@@ -175,17 +188,9 @@ export class BookChaptersComponent implements OnInit, OnDestroy {
       next: chapters => {
         this.chapters.set(chapters);
         this.loading.set(false);
-
         if (chapters.length > 0) {
           this.extracting.set(false);
-        } else if (this.extracting()) {
-          this.emptyPolls++;
-          if (this.emptyPolls >= MAX_EMPTY_POLLS) {
-            this.extracting.set(false);
-            this.notification.error('Extraction did not produce any chapters. Please check the server logs.');
-          }
         }
-        this.scheduleNextPoll();
       },
       error: err => {
         this.loading.set(false);
@@ -193,12 +198,5 @@ export class BookChaptersComponent implements OnInit, OnDestroy {
         this.notification.error(extractErrorMessage(err, 'Failed to load chapters.'));
       }
     });
-  }
-
-  private scheduleNextPoll(): void {
-    clearTimeout(this.pollHandle);
-    if (this.extracting() || this.inProgress()) {
-      this.pollHandle = setTimeout(() => this.loadChapters(false), POLL_INTERVAL_MS);
-    }
   }
 }

@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal, viewChildren } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -13,6 +13,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { BookService } from '../../../core/services/book.service';
 import { ChapterService } from '../../../core/services/chapter.service';
 import { CharacteristicService } from '../../../core/services/characteristic.service';
+import { GenerationEventsService } from '../../../core/services/generation-events.service';
 import { LearningObjectiveService } from '../../../core/services/learning-objective.service';
 import { ConstraintService } from '../../../core/services/constraint.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -36,8 +37,6 @@ interface StructuralAdapters {
   remove: (id: number) => Observable<void>;
   updateStatus: (id: number, status: CharacteristicStatus) => Observable<Characteristic>;
 }
-
-const CHAR_POLL_INTERVAL_MS = 3000;
 
 @Component({
   selector: 'app-chapter-detail',
@@ -67,6 +66,7 @@ export class ChapterDetailComponent implements OnInit, OnDestroy {
   private readonly bookService = inject(BookService);
   private readonly chapterService = inject(ChapterService);
   private readonly characteristicService = inject(CharacteristicService);
+  private readonly events = inject(GenerationEventsService);
   private readonly learningObjectiveService = inject(LearningObjectiveService);
   private readonly constraintService = inject(ConstraintService);
   private readonly notification = inject(NotificationService);
@@ -132,7 +132,7 @@ export class ChapterDetailComponent implements OnInit, OnDestroy {
   // Async characteristic generation.
   protected readonly generatingCharacteristics = signal(false);
   private readonly characteristicLists = viewChildren(EditableItemListComponent);
-  private charPollHandle?: ReturnType<typeof setTimeout>;
+  private eventsSub?: Subscription;
 
   protected readonly loadConstraints = () => this.constraintService.list(this.bookId, this.ordinal);
   protected readonly createConstraint = (content: string) =>
@@ -172,28 +172,37 @@ export class ChapterDetailComponent implements OnInit, OnDestroy {
     this.loadObjectives();
 
     // Resume the characteristic-generation indicator if a run is still in progress.
-    this.characteristicService.getGenerationStatus(this.bookId, this.ordinal).subscribe({
-      next: s => {
-        if (s.status === 'PROCESSING') {
-          this.generatingCharacteristics.set(true);
-          this.scheduleCharPoll();
+    this.resumeCharacteristicStatus();
+
+    // Live updates: react to characteristic-generation events for this chapter.
+    this.eventsSub = this.events.stream(this.bookId).subscribe(msg => {
+      if (msg.type === 'connected') {
+        if (this.generatingCharacteristics()) {
+          this.resumeCharacteristicStatus(); // reconcile a completion missed while disconnected
         }
-      },
-      error: () => {}
+        return;
+      }
+      const event = msg.event;
+      if (event.kind !== 'CHARACTERISTICS' || event.ordinal !== this.ordinal) {
+        return;
+      }
+      if (event.status === 'DONE') {
+        this.applyCharacteristicsDone();
+      } else if (event.status === 'FAILED') {
+        this.generatingCharacteristics.set(false);
+        this.notification.error(event.error ?? 'Characteristic generation failed.');
+      }
     });
   }
 
   ngOnDestroy(): void {
-    clearTimeout(this.charPollHandle);
+    this.eventsSub?.unsubscribe();
   }
 
   protected generateCharacteristics(): void {
     this.generatingCharacteristics.set(true);
     this.characteristicService.generate(this.bookId, this.ordinal).subscribe({
-      next: () => {
-        this.notification.success('Characteristic generation started.');
-        this.scheduleCharPoll();
-      },
+      next: () => this.notification.success('Characteristic generation started.'),
       error: err => {
         this.generatingCharacteristics.set(false);
         this.notification.error(extractErrorMessage(err, 'Failed to start characteristic generation.'));
@@ -201,31 +210,28 @@ export class ChapterDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  private scheduleCharPoll(): void {
-    clearTimeout(this.charPollHandle);
-    this.charPollHandle = setTimeout(() => this.pollCharStatus(), CHAR_POLL_INTERVAL_MS);
+  /** Clears the indicator and reloads objectives + surface after a generation completes. */
+  private applyCharacteristicsDone(): void {
+    this.generatingCharacteristics.set(false);
+    this.notification.success('Characteristics generated (pending review).');
+    this.loadObjectives();
+    this.characteristicLists().forEach(list => list.reload());
   }
 
-  private pollCharStatus(): void {
+  /** One-shot status check (used on init and on SSE reconnect) to resume/reconcile. */
+  private resumeCharacteristicStatus(): void {
     this.characteristicService.getGenerationStatus(this.bookId, this.ordinal).subscribe({
       next: s => {
         if (s.status === 'PROCESSING') {
-          this.scheduleCharPoll();
-        } else if (s.status === 'DONE') {
-          this.generatingCharacteristics.set(false);
-          this.notification.success('Characteristics generated (pending review).');
-          // Reload the learning objectives (their nested structural lists reload on init)
-          // and the surface list.
-          this.loadObjectives();
-          this.characteristicLists().forEach(list => list.reload());
-        } else if (s.status === 'FAILED') {
+          this.generatingCharacteristics.set(true);
+        } else if (s.status === 'DONE' && this.generatingCharacteristics()) {
+          this.applyCharacteristicsDone();
+        } else if (s.status === 'FAILED' && this.generatingCharacteristics()) {
           this.generatingCharacteristics.set(false);
           this.notification.error(s.error ?? 'Characteristic generation failed.');
-        } else {
-          this.generatingCharacteristics.set(false);
         }
       },
-      error: () => this.scheduleCharPoll()
+      error: () => {}
     });
   }
 
